@@ -7,30 +7,25 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 const RECIPES_STORAGE_KEY = 'polskie-przepisy-recipes';
 const FRIENDS_STORAGE_KEY = 'polskie-przepisy-friends';
 const FRIEND_REQUESTS_STORAGE_KEY = 'polskie-przepisy-friend-requests';
-const USERS_STORAGE_KEY = 'polskie-przepisy-users';
 
 // Start with empty data - no demo recipes or users
 const initialRecipes: Recipe[] = [];
-const initialUsers: User[] = [];
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const { user } = useAuth();
+  const { user, getAllUsers } = useAuth();
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [friends, setFriends] = useState<User[]>([]);
   const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([]);
-  const [allUsers, setAllUsers] = useState<User[]>(initialUsers);
 
   useEffect(() => {
     // Load data from localStorage
     const storedRecipes = localStorage.getItem(RECIPES_STORAGE_KEY);
     const storedFriends = localStorage.getItem(FRIENDS_STORAGE_KEY);
     const storedFriendRequests = localStorage.getItem(FRIEND_REQUESTS_STORAGE_KEY);
-    const storedUsers = localStorage.getItem(USERS_STORAGE_KEY);
 
     setRecipes(storedRecipes ? JSON.parse(storedRecipes) : initialRecipes);
     setFriends(storedFriends ? JSON.parse(storedFriends) : []);
     setFriendRequests(storedFriendRequests ? JSON.parse(storedFriendRequests) : []);
-    setAllUsers(storedUsers ? JSON.parse(storedUsers) : initialUsers);
   }, []);
 
   const saveToStorage = (key: string, data: any) => {
@@ -44,7 +39,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       ...recipeData,
       id: Date.now().toString(),
       authorId: user.id,
-      authorUsername: user.username,
+      authorUsername: user.displayName || user.username,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -87,24 +82,18 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     );
     setFriendRequests(updatedFriendRequests);
     saveToStorage(FRIEND_REQUESTS_STORAGE_KEY, updatedFriendRequests);
-
-    // Remove from all users list
-    const updatedAllUsers = allUsers.filter(u => u.id !== userId);
-    setAllUsers(updatedAllUsers);
-    saveToStorage(USERS_STORAGE_KEY, updatedAllUsers);
-  };
-
-  const getAllUsers = (): User[] => {
-    return allUsers;
   };
 
   const sendFriendRequest = (toUserId: string) => {
     if (!user) return;
 
+    const toUser = getAllUsers().find(u => u.id === toUserId);
+    if (!toUser) return;
+
     const newRequest: FriendRequest = {
       id: Date.now().toString(),
       fromUserId: user.id,
-      fromUsername: user.username,
+      fromUsername: user.displayName || user.username,
       toUserId,
       status: 'pending',
       createdAt: new Date().toISOString(),
@@ -127,6 +116,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     saveToStorage(FRIEND_REQUESTS_STORAGE_KEY, updatedRequests);
 
     // Add to friends
+    const allUsers = getAllUsers();
     const newFriend = allUsers.find(u => u.id === request.fromUserId);
     if (newFriend) {
       const updatedFriends = [...friends, newFriend];
@@ -145,9 +135,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const searchUsers = (query: string): User[] => {
     if (!query.trim()) return [];
+    const allUsers = getAllUsers();
     return allUsers.filter(u => 
       u.username.toLowerCase().includes(query.toLowerCase()) ||
-      u.email.toLowerCase().includes(query.toLowerCase())
+      u.email.toLowerCase().includes(query.toLowerCase()) ||
+      (u.displayName && u.displayName.toLowerCase().includes(query.toLowerCase()))
     );
   };
 
@@ -160,12 +152,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return recipes.filter(recipe => recipe.authorId === userId);
   };
 
+  const getRecipeById = (id: string): Recipe | undefined => {
+    return recipes.find(recipe => recipe.id === id);
+  };
+
   return (
     <AppContext.Provider value={{
       recipes,
       friends,
       friendRequests,
-      allUsers,
+      allUsers: getAllUsers(),
       addRecipe,
       updateRecipe,
       deleteRecipe,
@@ -175,6 +171,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       searchUsers,
       getFriendRecipes,
       getUserRecipes,
+      getRecipeById,
       deleteUser,
       getAllUsers,
     }}>

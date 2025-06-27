@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Plus, Heart, Sparkles } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useApp } from '../contexts/AppContext';
@@ -8,6 +8,7 @@ import RecipeCard from '../components/RecipeCard';
 const HomePage: React.FC = () => {
   const { user } = useAuth();
   const { recipes, getFriendRecipes, getUserRecipes } = useApp();
+  const navigate = useNavigate();
 
   const userRecipes = getUserRecipes(user?.id || '');
   const friendRecipes = getFriendRecipes();
@@ -23,7 +24,7 @@ const HomePage: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold mb-2">
-                Witaj z powrotem, {user?.username}! 👋
+                Witaj z powrotem, {user?.displayName || user?.username}! 👋
               </h1>
               <p className="text-orange-100 text-lg">
                 Gotowy na kolejne kulinarne przygody?
@@ -99,7 +100,7 @@ const HomePage: React.FC = () => {
               <RecipeCard
                 key={recipe.id}
                 recipe={recipe}
-                onClick={() => {/* Navigate to recipe detail */}}
+                onClick={() => navigate(`/recipe/${recipe.id}`)}
               />
             ))}
           </div>

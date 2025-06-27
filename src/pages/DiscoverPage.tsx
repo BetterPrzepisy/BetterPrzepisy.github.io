@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import { Search, Filter, TrendingUp } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import RecipeCard from '../components/RecipeCard';
 
 const DiscoverPage: React.FC = () => {
   const { user } = useAuth();
   const { recipes } = useApp();
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedDifficulty, setSelectedDifficulty] = useState('');
@@ -128,7 +130,7 @@ const DiscoverPage: React.FC = () => {
               <RecipeCard
                 key={recipe.id}
                 recipe={recipe}
-                onClick={() => {/* Navigate to recipe detail */}}
+                onClick={() => navigate(`/recipe/${recipe.id}`)}
               />
             ))}
           </div>

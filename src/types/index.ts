@@ -1,11 +1,13 @@
 export interface User {
   id: string;
   username: string;
+  displayName?: string;
   email: string;
   createdAt: string;
   bio?: string;
   avatar?: string;
   role?: 'user' | 'admin';
+  isVerified?: boolean;
 }
 
 export interface Recipe {
@@ -45,6 +47,9 @@ export interface AuthContextType {
   login: (email: string, password: string) => Promise<boolean>;
   register: (username: string, email: string, password: string) => Promise<boolean>;
   logout: () => void;
+  updateProfile: (updates: Partial<User>) => Promise<boolean>;
+  updateUserRole: (userId: string, role: 'user' | 'admin', isVerified: boolean) => Promise<boolean>;
+  getAllUsers: () => User[];
   isLoading: boolean;
 }
 
@@ -62,6 +67,7 @@ export interface AppContextType {
   searchUsers: (query: string) => User[];
   getFriendRecipes: () => Recipe[];
   getUserRecipes: (userId: string) => Recipe[];
+  getRecipeById: (id: string) => Recipe | undefined;
   deleteUser: (userId: string) => void;
   getAllUsers: () => User[];
 }

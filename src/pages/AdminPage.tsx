@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
-import { Shield, Users, BookOpen, Trash2, AlertTriangle, Search } from 'lucide-react';
+import { Shield, Users, BookOpen, Trash2, AlertTriangle, Search, CheckCircle, UserCheck } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useApp } from '../contexts/AppContext';
 import { Navigate } from 'react-router-dom';
 
 const AdminPage: React.FC = () => {
-  const { user } = useAuth();
-  const { recipes, getAllUsers, deleteUser, deleteRecipe } = useApp();
+  const { user, updateUserRole, getAllUsers } = useAuth();
+  const { recipes, deleteUser, deleteRecipe } = useApp();
   const [searchQuery, setSearchQuery] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [deleteType, setDeleteType] = useState<'user' | 'recipe'>('user');
+  const [showRoleModal, setShowRoleModal] = useState<string | null>(null);
 
   if (!user || user.role !== 'admin') {
     return <Navigate to="/" replace />;
@@ -18,7 +19,8 @@ const AdminPage: React.FC = () => {
   const allUsers = getAllUsers().filter(u => u.role !== 'admin');
   const filteredUsers = allUsers.filter(u => 
     u.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    u.email.toLowerCase().includes(searchQuery.toLowerCase())
+    u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (u.displayName && u.displayName.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   const handleDeleteUser = (userId: string) => {
@@ -34,6 +36,11 @@ const AdminPage: React.FC = () => {
   const confirmDelete = (id: string, type: 'user' | 'recipe') => {
     setShowDeleteConfirm(id);
     setDeleteType(type);
+  };
+
+  const handleUpdateUserRole = async (userId: string, role: 'user' | 'admin', isVerified: boolean) => {
+    await updateUserRole(userId, role, isVerified);
+    setShowRoleModal(null);
   };
 
   return (
@@ -115,6 +122,9 @@ const AdminPage: React.FC = () => {
                     Email
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Data rejestracji
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -136,7 +146,15 @@ const AdminPage: React.FC = () => {
                             <Users className="h-5 w-5 text-gray-600" />
                           </div>
                           <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-900">{u.username}</div>
+                            <div className="flex items-center">
+                              <div className="text-sm font-medium text-gray-900">
+                                {u.displayName || u.username}
+                              </div>
+                              {u.isVerified && (
+                                <CheckCircle className="h-4 w-4 text-blue-500 ml-1" />
+                              )}
+                            </div>
+                            <div className="text-sm text-gray-500">@{u.username}</div>
                             {u.bio && (
                               <div className="text-sm text-gray-500 truncate max-w-xs">{u.bio}</div>
                             )}
@@ -146,6 +164,24 @@ const AdminPage: React.FC = () => {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {u.email}
                       </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center space-x-2">
+                          {u.isVerified ? (
+                            <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                              Zweryfikowany
+                            </span>
+                          ) : (
+                            <span className="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded-full">
+                              Niezweryfikowany
+                            </span>
+                          )}
+                          {u.role === 'admin' && (
+                            <span className="px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full">
+                              Admin
+                            </span>
+                          )}
+                        </div>
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {new Date(u.createdAt).toLocaleDateString('pl-PL')}
                       </td>
@@ -153,13 +189,22 @@ const AdminPage: React.FC = () => {
                         {userRecipes.length}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <button
-                          onClick={() => confirmDelete(u.id, 'user')}
-                          className="text-red-600 hover:text-red-900 flex items-center"
-                        >
-                          <Trash2 className="h-4 w-4 mr-1" />
-                          Usuń
-                        </button>
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => setShowRoleModal(u.id)}
+                            className="text-blue-600 hover:text-blue-900 flex items-center"
+                          >
+                            <UserCheck className="h-4 w-4 mr-1" />
+                            Zarządzaj
+                          </button>
+                          <button
+                            onClick={() => confirmDelete(u.id, 'user')}
+                            className="text-red-600 hover:text-red-900 flex items-center"
+                          >
+                            <Trash2 className="h-4 w-4 mr-1" />
+                            Usuń
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -205,6 +250,63 @@ const AdminPage: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Role Management Modal */}
+      {showRoleModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
+            {(() => {
+              const targetUser = allUsers.find(u => u.id === showRoleModal);
+              if (!targetUser) return null;
+              
+              return (
+                <>
+                  <div className="flex items-center mb-4">
+                    <UserCheck className="h-6 w-6 text-blue-600 mr-3" />
+                    <h3 className="text-lg font-semibold text-gray-900">Zarządzaj użytkownikiem</h3>
+                  </div>
+                  <div className="mb-6">
+                    <p className="text-gray-600 mb-4">
+                      Zarządzaj uprawnieniami dla: <strong>{targetUser.displayName || targetUser.username}</strong>
+                    </p>
+                    <div className="space-y-3">
+                      <button
+                        onClick={() => handleUpdateUserRole(targetUser.id, targetUser.role || 'user', !targetUser.isVerified)}
+                        className={`w-full p-3 rounded-lg border-2 transition-colors ${
+                          targetUser.isVerified 
+                            ? 'border-red-200 bg-red-50 text-red-700 hover:bg-red-100' 
+                            : 'border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100'
+                        }`}
+                      >
+                        {targetUser.isVerified ? 'Usuń weryfikację' : 'Zweryfikuj użytkownika'}
+                      </button>
+                      
+                      <button
+                        onClick={() => handleUpdateUserRole(targetUser.id, targetUser.role === 'admin' ? 'user' : 'admin', targetUser.isVerified || false)}
+                        className={`w-full p-3 rounded-lg border-2 transition-colors ${
+                          targetUser.role === 'admin'
+                            ? 'border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100'
+                            : 'border-red-200 bg-red-50 text-red-700 hover:bg-red-100'
+                        }`}
+                      >
+                        {targetUser.role === 'admin' ? 'Usuń uprawnienia admina' : 'Nadaj uprawnienia admina'}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex space-x-4">
+                    <button
+                      onClick={() => setShowRoleModal(null)}
+                      className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      Anuluj
+                    </button>
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        </div>
+      )}
 
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (

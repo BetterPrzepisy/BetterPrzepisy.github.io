@@ -1,6 +1,7 @@
 import React from 'react';
-import { Clock, Users, ChefHat, User } from 'lucide-react';
+import { Clock, Users, ChefHat, User, CheckCircle } from 'lucide-react';
 import { Recipe } from '../types';
+import { useAuth } from '../contexts/AuthContext';
 
 interface RecipeCardProps {
   recipe: Recipe;
@@ -8,6 +9,8 @@ interface RecipeCardProps {
 }
 
 const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onClick }) => {
+  const { getAllUsers } = useAuth();
+  
   const getDifficultyColor = (difficulty?: string) => {
     switch (difficulty) {
       case 'łatwy': return 'text-green-600 bg-green-100';
@@ -16,6 +19,8 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onClick }) => {
       default: return 'text-gray-600 bg-gray-100';
     }
   };
+
+  const author = getAllUsers().find(u => u.id === recipe.authorId);
 
   return (
     <div 
@@ -46,7 +51,12 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onClick }) => {
 
         <div className="flex items-center text-sm text-gray-600 mb-4">
           <User className="h-4 w-4 mr-1" />
-          <span className="truncate">{recipe.authorUsername}</span>
+          <span className="truncate flex items-center">
+            {recipe.authorUsername}
+            {author?.isVerified && (
+              <CheckCircle className="h-3 w-3 text-blue-500 ml-1" />
+            )}
+          </span>
         </div>
 
         <div className="flex items-center justify-between text-sm text-gray-500">

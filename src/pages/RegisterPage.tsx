@@ -39,7 +39,7 @@ const RegisterPage: React.FC = () => {
 
     const success = await register(formData.username, formData.email, formData.password);
     if (!success) {
-      setError('Użytkownik o podanym emailu lub nazwie już istnieje');
+      setError('Użytkownik o podanym emailu już istnieje lub nazwa użytkownika jest zajęta');
     }
   };
 
@@ -96,6 +96,9 @@ const RegisterPage: React.FC = () => {
                 className="mt-1 appearance-none relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 focus:z-10 sm:text-sm transition-colors"
                 placeholder="jan@example.com"
               />
+              <p className="text-xs text-gray-500 mt-1">
+                Jeden email = jedno konto
+              </p>
             </div>
 
             <div>

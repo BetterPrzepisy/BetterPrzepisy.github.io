@@ -1,6 +1,6 @@
 import React from 'react';
 import { Outlet, Link, useLocation, Navigate } from 'react-router-dom';
-import { Home, User, Users, Plus, Search, LogOut, Shield } from 'lucide-react';
+import { Home, User, Users, Plus, Search, LogOut, Shield, CheckCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 const Layout: React.FC = () => {
@@ -24,7 +24,8 @@ const Layout: React.FC = () => {
         <div className="flex min-h-0 flex-1 flex-col bg-white shadow-lg">
           <div className="flex flex-1 flex-col pt-5 pb-4 overflow-y-auto">
             <div className="flex items-center flex-shrink-0 px-4">
-              <h1 className="text-2xl font-bold text-orange-600">BetterPrzepisy </h1><h2 className="text-1xl font-bold text-green-500">BETA</h2>
+              <h1 className="text-2xl font-bold text-orange-600">BetterPrzepisy</h1>
+              <h2 className="text-xs font-bold text-green-500 ml-2">BETA</h2>
             </div>
             <nav className="mt-8 flex-1 px-2 space-y-1">
               <Link
@@ -111,17 +112,22 @@ const Layout: React.FC = () => {
                 </div>
               </div>
               <div className="ml-3">
-                <p className="text-sm font-medium text-gray-700">
-                  {user.username}
-                  {user.role === 'admin' && (
-                    <span className="ml-2 text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full">
-                      Admin
-                    </span>
+                <div className="flex items-center">
+                  <p className="text-sm font-medium text-gray-700">
+                    {user.displayName || user.username}
+                  </p>
+                  {user.isVerified && (
+                    <CheckCircle className="h-4 w-4 text-blue-500 ml-1" />
                   )}
-                </p>
+                </div>
+                {user.role === 'admin' && (
+                  <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full">
+                    Admin
+                  </span>
+                )}
                 <button
                   onClick={handleLogout}
-                  className="text-xs text-gray-500 hover:text-gray-700 flex items-center"
+                  className="text-xs text-gray-500 hover:text-gray-700 flex items-center mt-1"
                 >
                   <LogOut className="h-3 w-3 mr-1" />
                   Wyloguj

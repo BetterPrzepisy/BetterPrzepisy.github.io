@@ -1,12 +1,15 @@
 import React from 'react';
-import { User, Calendar, BookOpen, Users } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { User, Calendar, BookOpen, Users, Edit, CheckCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useApp } from '../contexts/AppContext';
 import RecipeCard from '../components/RecipeCard';
+import { useNavigate } from 'react-router-dom';
 
 const ProfilePage: React.FC = () => {
   const { user } = useAuth();
   const { getUserRecipes, friends } = useApp();
+  const navigate = useNavigate();
 
   const userRecipes = getUserRecipes(user?.id || '');
 
@@ -16,23 +19,46 @@ const ProfilePage: React.FC = () => {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Profile Header */}
       <div className="bg-white rounded-xl shadow-md p-8 mb-8">
-        <div className="flex items-center space-x-6">
-          <div className="h-24 w-24 bg-orange-200 rounded-full flex items-center justify-center">
-            <User className="h-12 w-12 text-orange-600" />
-          </div>
-          
-          <div className="flex-1">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">{user.username}</h1>
-            <p className="text-gray-600 mb-4">{user.email}</p>
-            {user.bio && (
-              <p className="text-gray-700">{user.bio}</p>
-            )}
+        <div className="flex items-start justify-between">
+          <div className="flex items-center space-x-6">
+            <div className="h-24 w-24 bg-orange-200 rounded-full flex items-center justify-center">
+              <User className="h-12 w-12 text-orange-600" />
+            </div>
             
-            <div className="flex items-center text-sm text-gray-500 mt-4">
-              <Calendar className="h-4 w-4 mr-2" />
-              <span>Dołączył {new Date(user.createdAt).toLocaleDateString('pl-PL')}</span>
+            <div className="flex-1">
+              <div className="flex items-center mb-2">
+                <h1 className="text-3xl font-bold text-gray-900 mr-2">
+                  {user.displayName || user.username}
+                </h1>
+                {user.isVerified && (
+                  <CheckCircle className="h-6 w-6 text-blue-500" />
+                )}
+                {user.role === 'admin' && (
+                  <span className="ml-2 text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full">
+                    Admin
+                  </span>
+                )}
+              </div>
+              <p className="text-gray-600 mb-2">@{user.username}</p>
+              <p className="text-gray-600 mb-4">{user.email}</p>
+              {user.bio && (
+                <p className="text-gray-700 mb-4">{user.bio}</p>
+              )}
+              
+              <div className="flex items-center text-sm text-gray-500">
+                <Calendar className="h-4 w-4 mr-2" />
+                <span>Dołączył {new Date(user.createdAt).toLocaleDateString('pl-PL')}</span>
+              </div>
             </div>
           </div>
+          
+          <Link
+            to="/profile/edit"
+            className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors flex items-center"
+          >
+            <Edit className="h-4 w-4 mr-2" />
+            Edytuj profil
+          </Link>
         </div>
       </div>
 
@@ -75,7 +101,7 @@ const ProfilePage: React.FC = () => {
               <RecipeCard
                 key={recipe.id}
                 recipe={recipe}
-                onClick={() => {/* Navigate to recipe detail */}}
+                onClick={() => navigate(`/recipe/${recipe.id}`)}
               />
             ))}
           </div>
@@ -90,9 +116,12 @@ const ProfilePage: React.FC = () => {
             <p className="text-gray-600 mb-6">
               Nie dodałeś jeszcze żadnego przepisu. Podziel się swoimi ulubionymi potrawami!
             </p>
-            <button className="bg-orange-600 text-white px-6 py-3 rounded-full font-semibold hover:bg-orange-700 transition-colors">
+            <Link
+              to="/create-recipe"
+              className="bg-orange-600 text-white px-6 py-3 rounded-full font-semibold hover:bg-orange-700 transition-colors"
+            >
               Dodaj pierwszy przepis
-            </button>
+            </Link>
           </div>
         )}
       </div>
