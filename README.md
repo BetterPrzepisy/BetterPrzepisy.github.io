@@ -1,3 +1,3 @@
-# BetterPrzepisy.github.io
+# BetterPrzepisy is polish recipies page project.
 
-[Edit in StackBlitz next generation editor ⚡️](https://stackblitz.com/~/github.com/BetterPrzepisy/BetterPrzepisy.github.io)
+[Try Out Now](https://betterprzepisy.netlify.net)
