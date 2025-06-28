@@ -87,64 +87,97 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return false;
   };
 
-  const loginWithGoogle = async (): Promise<boolean> => {
+  const loginWithGitHub = async (): Promise<boolean> => {
     setIsLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 1500));
     
-    // Simulate Google login - in production, use Google OAuth
-    const googleUser: User & { password: string } = {
-      id: `google-${Date.now()}`,
-      username: `google_user_${Date.now()}`,
-      displayName: 'Google User',
-      email: `google.user.${Date.now()}@gmail.com`,
-      password: 'google-oauth',
-      createdAt: new Date().toISOString(),
-      role: 'user',
-      isVerified: true,
-      followers: [],
-      following: [],
-      favoriteRecipes: []
-    };
+    try {
+      // GitHub OAuth App configuration
+      const CLIENT_ID = 'Ov23liAjZbvQrQJhJGhJ'; // Your GitHub OAuth App Client ID
+      const REDIRECT_URI = window.location.origin + '/auth/github/callback';
+      const SCOPE = 'user:email';
+      
+      // Create GitHub OAuth URL
+      const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${SCOPE}&state=${Date.now()}`;
+      
+      // Open GitHub OAuth in a popup
+      const popup = window.open(
+        githubAuthUrl,
+        'github-oauth',
+        'width=600,height=700,scrollbars=yes,resizable=yes'
+      );
 
-    mockUsers.push(googleUser);
-    saveUsers();
-    
-    const { password: _, ...userWithoutPassword } = googleUser;
-    setUser(userWithoutPassword);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ user: userWithoutPassword }));
-    
-    setIsLoading(false);
-    return true;
-  };
+      if (!popup) {
+        setIsLoading(false);
+        return false;
+      }
 
-  const loginWithFacebook = async (): Promise<boolean> => {
-    setIsLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    // Simulate Facebook login - in production, use Facebook OAuth
-    const facebookUser: User & { password: string } = {
-      id: `facebook-${Date.now()}`,
-      username: `facebook_user_${Date.now()}`,
-      displayName: 'Facebook User',
-      email: `facebook.user.${Date.now()}@facebook.com`,
-      password: 'facebook-oauth',
-      createdAt: new Date().toISOString(),
-      role: 'user',
-      isVerified: true,
-      followers: [],
-      following: [],
-      favoriteRecipes: []
-    };
+      // Listen for the OAuth callback
+      return new Promise((resolve) => {
+        const checkClosed = setInterval(() => {
+          if (popup.closed) {
+            clearInterval(checkClosed);
+            setIsLoading(false);
+            resolve(false);
+          }
+        }, 1000);
 
-    mockUsers.push(facebookUser);
-    saveUsers();
-    
-    const { password: _, ...userWithoutPassword } = facebookUser;
-    setUser(userWithoutPassword);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ user: userWithoutPassword }));
-    
-    setIsLoading(false);
-    return true;
+        // Listen for messages from the popup
+        const messageListener = (event: MessageEvent) => {
+          if (event.origin !== window.location.origin) return;
+          
+          if (event.data.type === 'GITHUB_AUTH_SUCCESS') {
+            clearInterval(checkClosed);
+            popup.close();
+            window.removeEventListener('message', messageListener);
+            
+            const { userData } = event.data;
+            
+            // Create or find user
+            let githubUser = mockUsers.find(u => u.email === userData.email);
+            
+            if (!githubUser) {
+              githubUser = {
+                id: `github-${userData.id}`,
+                username: userData.login || `github_user_${Date.now()}`,
+                displayName: userData.name || userData.login,
+                email: userData.email || `${userData.login}@github.local`,
+                password: 'github-oauth',
+                createdAt: new Date().toISOString(),
+                role: 'user',
+                isVerified: true,
+                followers: [],
+                following: [],
+                favoriteRecipes: [],
+                bio: userData.bio || undefined,
+                avatar: userData.avatar_url
+              };
+              
+              mockUsers.push(githubUser);
+              saveUsers();
+            }
+            
+            const { password: _, ...userWithoutPassword } = githubUser;
+            setUser(userWithoutPassword);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify({ user: userWithoutPassword }));
+            
+            setIsLoading(false);
+            resolve(true);
+          } else if (event.data.type === 'GITHUB_AUTH_ERROR') {
+            clearInterval(checkClosed);
+            popup.close();
+            window.removeEventListener('message', messageListener);
+            setIsLoading(false);
+            resolve(false);
+          }
+        };
+
+        window.addEventListener('message', messageListener);
+      });
+    } catch (error) {
+      console.error('GitHub OAuth error:', error);
+      setIsLoading(false);
+      return false;
+    }
   };
 
   const register = async (username: string, email: string, password: string): Promise<boolean> => {
@@ -294,8 +327,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     <AuthContext.Provider value={{
       user,
       login,
-      loginWithGoogle,
-      loginWithFacebook,
+      loginWithGitHub,
       register,
       logout,
       updateProfile,
