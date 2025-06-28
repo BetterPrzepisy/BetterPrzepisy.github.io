@@ -1,3 +1,106 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  --color-primary: #ea580c;
+  --color-secondary: #fb923c;
+  --color-accent: #fed7aa;
+  --color-background: #fef3f2;
+  --color-surface: #ffffff;
+  --color-text: #1f2937;
+}
+
+/* Custom theme classes */
+.theme-primary {
+  background-color: var(--color-primary);
+}
+
+.theme-primary-text {
+  color: var(--color-primary);
+}
+
+.theme-secondary {
+  background-color: var(--color-secondary);
+}
+
+.theme-secondary-text {
+  color: var(--color-secondary);
+}
+
+.theme-accent {
+  background-color: var(--color-accent);
+}
+
+.theme-surface {
+  background-color: var(--color-surface);
+}
+
+.theme-background {
+  background-color: var(--color-background);
+}
+
+.theme-text {
+  color: var(--color-text);
+}
+
+/* Apply theme colors to existing classes */
+.bg-orange-600 {
+  background-color: var(--color-primary) !important;
+}
+
+.text-orange-600 {
+  color: var(--color-primary) !important;
+}
+
+.bg-orange-700 {
+  background-color: var(--color-primary) !important;
+  filter: brightness(0.9);
+}
+
+.text-orange-700 {
+  color: var(--color-primary) !important;
+  filter: brightness(0.9);
+}
+
+.bg-orange-500 {
+  background-color: var(--color-secondary) !important;
+}
+
+.text-orange-500 {
+  color: var(--color-secondary) !important;
+}
+
+.bg-orange-100 {
+  background-color: var(--color-accent) !important;
+}
+
+.text-orange-100 {
+  color: var(--color-accent) !important;
+}
+
+.border-orange-500 {
+  border-color: var(--color-primary) !important;
+}
+
+.ring-orange-500 {
+  --tw-ring-color: var(--color-primary) !important;
+}
+
+.focus\:ring-orange-500:focus {
+  --tw-ring-color: var(--color-primary) !important;
+}
+
+.focus\:border-orange-500:focus {
+  border-color: var(--color-primary) !important;
+}
+
+.hover\:bg-orange-700:hover {
+  background-color: var(--color-primary) !important;
+  filter: brightness(0.9);
+}
+
+.hover\:text-orange-700:hover {
+  color: var(--color-primary) !important;
+  filter: brightness(0.9);
+}

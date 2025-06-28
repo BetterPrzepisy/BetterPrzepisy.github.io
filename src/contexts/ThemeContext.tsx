@@ -62,6 +62,25 @@ const defaultThemes: Theme[] = [
   }
 ];
 
+const applyThemeToDocument = (theme: Theme, darkMode: boolean) => {
+  const root = document.documentElement;
+  
+  // Apply theme colors as CSS custom properties
+  root.style.setProperty('--color-primary', theme.colors.primary);
+  root.style.setProperty('--color-secondary', theme.colors.secondary);
+  root.style.setProperty('--color-accent', theme.colors.accent);
+  root.style.setProperty('--color-background', darkMode ? '#111827' : theme.colors.background);
+  root.style.setProperty('--color-surface', darkMode ? '#1f2937' : theme.colors.surface);
+  root.style.setProperty('--color-text', darkMode ? '#f9fafb' : theme.colors.text);
+  
+  // Apply dark mode class
+  if (darkMode) {
+    root.classList.add('dark');
+  } else {
+    root.classList.remove('dark');
+  }
+};
+
 export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [darkMode, setDarkMode] = useState(false);
   const [currentTheme, setCurrentTheme] = useState<Theme>(defaultThemes[0]);
@@ -75,39 +94,22 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       const theme = defaultThemes.find(t => t.id === savedTheme) || defaultThemes[0];
       setCurrentTheme(theme);
     }
-
-    // Apply dark mode class to document
-    if (savedDarkMode) {
-      document.documentElement.classList.add('dark');
-    }
   }, []);
+
+  useEffect(() => {
+    applyThemeToDocument(currentTheme, darkMode);
+  }, [currentTheme, darkMode]);
 
   const toggleDarkMode = () => {
     const newDarkMode = !darkMode;
     setDarkMode(newDarkMode);
     localStorage.setItem('darkMode', newDarkMode.toString());
-    
-    if (newDarkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
   };
 
   const setTheme = (theme: Theme) => {
     setCurrentTheme(theme);
     localStorage.setItem('currentTheme', theme.id);
-    
-    // Apply CSS custom properties
-    const root = document.documentElement;
-    root.style.setProperty('--color-primary', theme.colors.primary);
-    root.style.setProperty('--color-secondary', theme.colors.secondary);
-    root.style.setProperty('--color-accent', theme.colors.accent);
   };
-
-  useEffect(() => {
-    setTheme(currentTheme);
-  }, [currentTheme]);
 
   return (
     <ThemeContext.Provider value={{

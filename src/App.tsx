@@ -13,6 +13,7 @@ import DiscoverPage from './pages/DiscoverPage';
 import CreateRecipePage from './pages/CreateRecipePage';
 import AdminPage from './pages/AdminPage';
 import RecipeDetailPage from './pages/RecipeDetailPage';
+import EditRecipePage from './pages/EditRecipePage';
 import EditProfilePage from './pages/EditProfilePage';
 import ShoppingListPage from './pages/ShoppingListPage';
 import SettingsPage from './pages/SettingsPage';
@@ -36,6 +37,7 @@ function App() {
                 <Route path="trending" element={<TrendingPage />} />
                 <Route path="create-recipe" element={<CreateRecipePage />} />
                 <Route path="recipe/:id" element={<RecipeDetailPage />} />
+                <Route path="recipe/:id/edit" element={<EditRecipePage />} />
                 <Route path="shopping-list" element={<ShoppingListPage />} />
                 <Route path="settings" element={<SettingsPage />} />
                 <Route path="admin" element={<AdminPage />} />
