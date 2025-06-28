@@ -45,9 +45,7 @@ const Layout: React.FC = () => {
         >
           <div className="flex flex-1 flex-col pt-5 pb-4 overflow-y-auto">
             <div className="flex items-center flex-shrink-0 px-4">
-              <h1 className={`text-2xl font-bold transition-colors duration-300 ${
-                darkMode ? 'text-orange-400' : 'text-orange-600'
-              }`}>
+              <h1 className="text-2xl font-bold theme-primary-text">
                 BetterPrzepisy
               </h1>
               <h2 className="text-xs font-bold text-green-500 ml-2">BETA</h2>
@@ -60,15 +58,13 @@ const Layout: React.FC = () => {
                   to={path}
                   className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
                     isActive(path) 
-                      ? darkMode
-                        ? 'bg-orange-900 text-orange-200' 
-                        : 'bg-orange-100 text-orange-900'
+                      ? 'theme-bg-light theme-text-light' 
                       : darkMode
                         ? 'text-gray-300 hover:bg-gray-700 hover:text-white'
                         : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                   }`}
                 >
-                  <Icon className="mr-3 h-5 w-5" />
+                  <Icon className={`mr-3 h-5 w-5 ${isActive(path) ? 'theme-icon' : ''}`} />
                   {label}
                 </Link>
               ))}
@@ -99,12 +95,12 @@ const Layout: React.FC = () => {
                 <div className={`h-8 w-8 rounded-full flex items-center justify-center ${
                   user.role === 'admin' 
                     ? darkMode ? 'bg-red-800' : 'bg-red-200' 
-                    : darkMode ? 'bg-orange-800' : 'bg-orange-200'
+                    : 'theme-bg-light'
                 }`}>
                   {user.role === 'admin' ? (
                     <Shield className={`h-5 w-5 ${darkMode ? 'text-red-200' : 'text-red-600'}`} />
                   ) : (
-                    <User className={`h-5 w-5 ${darkMode ? 'text-orange-200' : 'text-orange-600'}`} />
+                    <User className="h-5 w-5 theme-icon" />
                   )}
                 </div>
               </div>
@@ -170,9 +166,7 @@ const Layout: React.FC = () => {
               to={path}
               className={`flex flex-col items-center py-2 px-3 rounded-lg transition-all duration-200 ${
                 isActive(path) 
-                  ? darkMode
-                    ? 'text-orange-400 bg-orange-900' 
-                    : 'text-orange-600 bg-orange-50'
+                  ? 'theme-primary-text theme-bg-light' 
                   : darkMode
                     ? 'text-gray-400'
                     : 'text-gray-600'

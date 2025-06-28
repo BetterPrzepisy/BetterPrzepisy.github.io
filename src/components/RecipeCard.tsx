@@ -68,7 +68,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onClick, showActions = 
       
       <div className="p-6">
         <div className="flex items-center justify-between mb-3">
-          <h3 className={`text-xl font-semibold truncate flex-1 mr-2 transition-colors duration-300 ${
+          <h3 className={`text-xl font-semibold truncate flex-1 mr-2 transition-colors duration-300 theme-heading ${
             darkMode ? 'text-gray-100' : 'text-gray-900'
           }`}>
             {recipe.title}
@@ -83,7 +83,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onClick, showActions = 
         <div className={`flex items-center text-sm mb-4 transition-colors duration-300 ${
           darkMode ? 'text-gray-400' : 'text-gray-600'
         }`}>
-          <User className="h-4 w-4 mr-1" />
+          <User className="h-4 w-4 mr-1 theme-icon" />
           <span className="truncate flex items-center">
             {recipe.authorUsername}
             {author?.isVerified && (
@@ -98,13 +98,13 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onClick, showActions = 
           <div className="flex items-center space-x-4">
             {recipe.cookingTime && (
               <div className="flex items-center">
-                <Clock className="h-4 w-4 mr-1" />
+                <Clock className="h-4 w-4 mr-1 theme-icon" />
                 <span>{recipe.cookingTime} min</span>
               </div>
             )}
             {recipe.servings && (
               <div className="flex items-center">
-                <Users className="h-4 w-4 mr-1" />
+                <Users className="h-4 w-4 mr-1 theme-icon" />
                 <span>{recipe.servings} os.</span>
               </div>
             )}
@@ -112,7 +112,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onClick, showActions = 
           
           {recipe.category && (
             <div className="flex items-center">
-              <ChefHat className="h-4 w-4 mr-1" />
+              <ChefHat className="h-4 w-4 mr-1 theme-icon" />
               <span className="truncate">{recipe.category}</span>
             </div>
           )}
@@ -124,7 +124,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onClick, showActions = 
               <span
                 key={index}
                 className={`px-2 py-1 text-xs rounded-full transition-colors duration-300 ${
-                  darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-700'
+                  darkMode ? 'bg-gray-700 text-gray-300' : 'theme-bg-light theme-text-light'
                 }`}
               >
                 #{tag}
@@ -132,7 +132,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onClick, showActions = 
             ))}
             {recipe.tags.length > 3 && (
               <span className={`px-2 py-1 text-xs rounded-full transition-colors duration-300 ${
-                darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-700'
+                darkMode ? 'bg-gray-700 text-gray-300' : 'theme-bg-light theme-text-light'
               }`}>
                 +{recipe.tags.length - 3}
               </span>

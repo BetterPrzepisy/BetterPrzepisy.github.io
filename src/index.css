@@ -13,53 +13,48 @@
 
 /* Custom theme classes */
 .theme-primary {
-  background-color: var(--color-primary);
+  background-color: var(--color-primary) !important;
 }
 
 .theme-primary-text {
-  color: var(--color-primary);
+  color: var(--color-primary) !important;
 }
 
 .theme-secondary {
-  background-color: var(--color-secondary);
+  background-color: var(--color-secondary) !important;
 }
 
 .theme-secondary-text {
-  color: var(--color-secondary);
+  color: var(--color-secondary) !important;
 }
 
 .theme-accent {
-  background-color: var(--color-accent);
+  background-color: var(--color-accent) !important;
 }
 
 .theme-surface {
-  background-color: var(--color-surface);
+  background-color: var(--color-surface) !important;
 }
 
 .theme-background {
-  background-color: var(--color-background);
+  background-color: var(--color-background) !important;
 }
 
 .theme-text {
-  color: var(--color-text);
+  color: var(--color-text) !important;
 }
 
-/* Apply theme colors to existing classes */
-.bg-orange-600 {
-  background-color: var(--color-primary) !important;
+/* Override all orange colors with theme colors */
+.bg-orange-50 {
+  background-color: var(--color-accent) !important;
 }
 
-.text-orange-600 {
-  color: var(--color-primary) !important;
+.bg-orange-100 {
+  background-color: var(--color-accent) !important;
 }
 
-.bg-orange-700 {
-  background-color: var(--color-primary) !important;
-  filter: brightness(0.9);
-}
-
-.text-orange-700 {
-  color: var(--color-primary) !important;
+.bg-orange-200 {
+  background-color: var(--color-accent) !important;
   filter: brightness(0.9);
 }
 
@@ -67,19 +62,71 @@
   background-color: var(--color-secondary) !important;
 }
 
-.text-orange-500 {
-  color: var(--color-secondary) !important;
+.bg-orange-600 {
+  background-color: var(--color-primary) !important;
 }
 
-.bg-orange-100 {
-  background-color: var(--color-accent) !important;
+.bg-orange-700 {
+  background-color: var(--color-primary) !important;
+  filter: brightness(0.85);
+}
+
+.bg-orange-800 {
+  background-color: var(--color-primary) !important;
+  filter: brightness(0.7);
+}
+
+.bg-orange-900 {
+  background-color: var(--color-primary) !important;
+  filter: brightness(0.6);
 }
 
 .text-orange-100 {
   color: var(--color-accent) !important;
 }
 
+.text-orange-200 {
+  color: var(--color-accent) !important;
+  filter: brightness(0.9);
+}
+
+.text-orange-400 {
+  color: var(--color-secondary) !important;
+  filter: brightness(1.1);
+}
+
+.text-orange-500 {
+  color: var(--color-secondary) !important;
+}
+
+.text-orange-600 {
+  color: var(--color-primary) !important;
+}
+
+.text-orange-700 {
+  color: var(--color-primary) !important;
+  filter: brightness(0.85);
+}
+
+.text-orange-800 {
+  color: var(--color-primary) !important;
+  filter: brightness(0.7);
+}
+
+.text-orange-900 {
+  color: var(--color-primary) !important;
+  filter: brightness(0.6);
+}
+
+.border-orange-200 {
+  border-color: var(--color-accent) !important;
+}
+
 .border-orange-500 {
+  border-color: var(--color-primary) !important;
+}
+
+.border-orange-600 {
   border-color: var(--color-primary) !important;
 }
 
@@ -95,12 +142,100 @@
   border-color: var(--color-primary) !important;
 }
 
+.hover\:bg-orange-50:hover {
+  background-color: var(--color-accent) !important;
+}
+
+.hover\:bg-orange-100:hover {
+  background-color: var(--color-accent) !important;
+  filter: brightness(0.95);
+}
+
 .hover\:bg-orange-700:hover {
   background-color: var(--color-primary) !important;
-  filter: brightness(0.9);
+  filter: brightness(0.85);
+}
+
+.hover\:text-orange-500:hover {
+  color: var(--color-secondary) !important;
 }
 
 .hover\:text-orange-700:hover {
   color: var(--color-primary) !important;
+  filter: brightness(0.85);
+}
+
+/* Gradient overrides */
+.from-orange-50 {
+  --tw-gradient-from: var(--color-accent) !important;
+}
+
+.to-orange-100 {
+  --tw-gradient-to: var(--color-accent) !important;
+  filter: brightness(0.95);
+}
+
+.from-orange-500 {
+  --tw-gradient-from: var(--color-secondary) !important;
+}
+
+.to-orange-600 {
+  --tw-gradient-to: var(--color-primary) !important;
+}
+
+/* Dark mode adjustments */
+.dark .bg-orange-900 {
+  background-color: var(--color-primary) !important;
+  filter: brightness(0.4);
+}
+
+.dark .text-orange-400 {
+  color: var(--color-secondary) !important;
+  filter: brightness(1.2);
+}
+
+.dark .text-orange-200 {
+  color: var(--color-accent) !important;
+  filter: brightness(1.1);
+}
+
+/* Special theme classes for better visibility */
+.theme-icon {
+  color: var(--color-primary) !important;
+}
+
+.theme-heading {
+  color: var(--color-primary) !important;
+}
+
+.theme-link {
+  color: var(--color-primary) !important;
+}
+
+.theme-link:hover {
+  color: var(--color-primary) !important;
+  filter: brightness(0.85);
+}
+
+.theme-button {
+  background-color: var(--color-primary) !important;
+  color: white !important;
+}
+
+.theme-button:hover {
+  background-color: var(--color-primary) !important;
   filter: brightness(0.9);
+}
+
+.theme-border {
+  border-color: var(--color-primary) !important;
+}
+
+.theme-bg-light {
+  background-color: var(--color-accent) !important;
+}
+
+.theme-text-light {
+  color: var(--color-primary) !important;
+  filter: brightness(0.7);
 }
