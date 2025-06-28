@@ -171,23 +171,6 @@ const LoginPage: React.FC = () => {
                 </Link>
               </span>
             </div>
-
-            {/* Demo Account Info */}
-            <div className={`mt-6 p-4 rounded-lg border transition-colors duration-300 ${
-              darkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200'
-            }`}>
-              <h3 className={`text-sm font-medium mb-2 transition-colors duration-300 ${
-                darkMode ? 'text-gray-200' : 'text-gray-700'
-              }`}>
-                Konto demonstracyjne:
-              </h3>
-              <div className={`text-xs space-y-1 transition-colors duration-300 ${
-                darkMode ? 'text-gray-400' : 'text-gray-600'
-              }`}>
-                <p><strong>Admin:</strong> p7poland@gmail.com</p>
-                <p><strong>Hasło:</strong> qwertyasd1672#ffds@1</p>
-              </div>
-            </div>
           </form>
         </motion.div>
       </motion.div>
