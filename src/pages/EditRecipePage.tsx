@@ -527,7 +527,7 @@ const EditRecipePage: React.FC = () => {
             )}
             Zapisz zmiany
           </button>
-        </div>
+        </motion.div>
       </form>
     </div>
   );
