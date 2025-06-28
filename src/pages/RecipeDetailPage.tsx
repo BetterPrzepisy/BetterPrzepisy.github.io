@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Clock, Users, ChefHat, User, CheckCircle, Calendar } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
@@ -7,10 +7,16 @@ import { useAuth } from '../contexts/AuthContext';
 const RecipeDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getRecipeById } = useApp();
+  const { getRecipeById, incrementRecipeViewCount } = useApp();
   const { getAllUsers } = useAuth();
 
   const recipe = id ? getRecipeById(id) : undefined;
+
+  useEffect(() => {
+    if (id && recipe) {
+      incrementRecipeViewCount(id);
+    }
+  }, [id, recipe?.id, incrementRecipeViewCount]);
 
   if (!recipe) {
     return (

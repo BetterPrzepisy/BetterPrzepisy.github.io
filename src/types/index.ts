@@ -185,6 +185,7 @@ export interface AppContextType {
   getFriendRecipes: () => Recipe[];
   getUserRecipes: (userId: string) => Recipe[];
   getRecipeById: (id: string) => Recipe | undefined;
+  incrementRecipeViewCount: (id: string) => void;
   getTrendingRecipes: () => Recipe[];
   deleteUser: (userId: string) => void;
   getAllUsers: () => User[];

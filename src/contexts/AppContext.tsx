@@ -549,12 +549,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const getRecipeById = (id: string): Recipe | undefined => {
+    return recipes.find(recipe => recipe.id === id);
+  };
+
+  const incrementRecipeViewCount = (id: string) => {
     const recipe = recipes.find(recipe => recipe.id === id);
     if (recipe) {
-      // Increment view count
       updateRecipe(id, { viewCount: (recipe.viewCount || 0) + 1 });
     }
-    return recipe;
   };
 
   const markNotificationAsRead = (notificationId: string) => {
@@ -613,6 +615,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       getFriendRecipes,
       getUserRecipes,
       getRecipeById,
+      incrementRecipeViewCount,
       getTrendingRecipes,
       deleteUser,
       getAllUsers,
