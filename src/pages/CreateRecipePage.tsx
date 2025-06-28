@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, X, Clock, Users, ChefHat } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
+import { useTheme } from '../contexts/ThemeContext';
 
 const CreateRecipePage: React.FC = () => {
   const navigate = useNavigate();
   const { addRecipe } = useApp();
+  const { darkMode } = useTheme();
   
   const [formData, setFormData] = useState({
     title: '',
@@ -64,17 +66,33 @@ const CreateRecipePage: React.FC = () => {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Dodaj nowy przepis</h1>
-        <p className="text-gray-600">Podziel się swoim kulinarnym pomysłem ze znajomymi</p>
+        <h1 className={`text-3xl font-bold mb-2 transition-colors duration-300 ${
+          darkMode ? 'text-white' : 'text-gray-900'
+        }`}>
+          Dodaj nowy przepis
+        </h1>
+        <p className={`transition-colors duration-300 ${
+          darkMode ? 'text-gray-400' : 'text-gray-600'
+        }`}>
+          Podziel się swoim kulinarnym pomysłem ze znajomymi
+        </p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-8">
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">Podstawowe informacje</h2>
+        <div className={`rounded-xl shadow-md p-6 transition-colors duration-300 ${
+          darkMode ? 'bg-gray-800' : 'bg-white'
+        }`}>
+          <h2 className={`text-xl font-semibold mb-6 transition-colors duration-300 ${
+            darkMode ? 'text-white' : 'text-gray-900'
+          }`}>
+            Podstawowe informacje
+          </h2>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="md:col-span-2">
-              <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="title" className={`block text-sm font-medium mb-2 transition-colors duration-300 ${
+                darkMode ? 'text-gray-300' : 'text-gray-700'
+              }`}>
                 Nazwa przepisu *
               </label>
               <input
@@ -83,13 +101,19 @@ const CreateRecipePage: React.FC = () => {
                 required
                 value={formData.title}
                 onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
+                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors ${
+                  darkMode 
+                    ? 'border-gray-600 bg-gray-700 text-white placeholder-gray-400' 
+                    : 'border-gray-300 bg-white text-gray-900 placeholder-gray-500'
+                }`}
                 placeholder="np. Pierogi z kapustą i grzybami"
               />
             </div>
 
             <div>
-              <label htmlFor="cookingTime" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="cookingTime" className={`block text-sm font-medium mb-2 transition-colors duration-300 ${
+                darkMode ? 'text-gray-300' : 'text-gray-700'
+              }`}>
                 <Clock className="inline h-4 w-4 mr-1" />
                 Czas przygotowania (minuty)
               </label>
@@ -98,13 +122,19 @@ const CreateRecipePage: React.FC = () => {
                 id="cookingTime"
                 value={formData.cookingTime}
                 onChange={(e) => setFormData(prev => ({ ...prev, cookingTime: e.target.value }))}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
+                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors ${
+                  darkMode 
+                    ? 'border-gray-600 bg-gray-700 text-white placeholder-gray-400' 
+                    : 'border-gray-300 bg-white text-gray-900 placeholder-gray-500'
+                }`}
                 placeholder="60"
               />
             </div>
 
             <div>
-              <label htmlFor="servings" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="servings" className={`block text-sm font-medium mb-2 transition-colors duration-300 ${
+                darkMode ? 'text-gray-300' : 'text-gray-700'
+              }`}>
                 <Users className="inline h-4 w-4 mr-1" />
                 Liczba porcji
               </label>
@@ -113,20 +143,30 @@ const CreateRecipePage: React.FC = () => {
                 id="servings"
                 value={formData.servings}
                 onChange={(e) => setFormData(prev => ({ ...prev, servings: e.target.value }))}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
+                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors ${
+                  darkMode 
+                    ? 'border-gray-600 bg-gray-700 text-white placeholder-gray-400' 
+                    : 'border-gray-300 bg-white text-gray-900 placeholder-gray-500'
+                }`}
                 placeholder="4"
               />
             </div>
 
             <div>
-              <label htmlFor="difficulty" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="difficulty" className={`block text-sm font-medium mb-2 transition-colors duration-300 ${
+                darkMode ? 'text-gray-300' : 'text-gray-700'
+              }`}>
                 Poziom trudności
               </label>
               <select
                 id="difficulty"
                 value={formData.difficulty}
                 onChange={(e) => setFormData(prev => ({ ...prev, difficulty: e.target.value as any }))}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
+                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors ${
+                  darkMode 
+                    ? 'border-gray-600 bg-gray-700 text-white' 
+                    : 'border-gray-300 bg-white text-gray-900'
+                }`}
               >
                 <option value="łatwy">Łatwy</option>
                 <option value="średni">Średni</option>
@@ -135,7 +175,9 @@ const CreateRecipePage: React.FC = () => {
             </div>
 
             <div>
-              <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="category" className={`block text-sm font-medium mb-2 transition-colors duration-300 ${
+                darkMode ? 'text-gray-300' : 'text-gray-700'
+              }`}>
                 <ChefHat className="inline h-4 w-4 mr-1" />
                 Kategoria
               </label>
@@ -144,15 +186,25 @@ const CreateRecipePage: React.FC = () => {
                 id="category"
                 value={formData.category}
                 onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
+                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors ${
+                  darkMode 
+                    ? 'border-gray-600 bg-gray-700 text-white placeholder-gray-400' 
+                    : 'border-gray-300 bg-white text-gray-900 placeholder-gray-500'
+                }`}
                 placeholder="np. Dania główne, Desery, Zupy"
               />
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">Składniki *</h2>
+        <div className={`rounded-xl shadow-md p-6 transition-colors duration-300 ${
+          darkMode ? 'bg-gray-800' : 'bg-white'
+        }`}>
+          <h2 className={`text-xl font-semibold mb-6 transition-colors duration-300 ${
+            darkMode ? 'text-white' : 'text-gray-900'
+          }`}>
+            Składniki *
+          </h2>
           
           <div className="space-y-3">
             {formData.ingredients.map((ingredient, index) => (
@@ -161,14 +213,18 @@ const CreateRecipePage: React.FC = () => {
                   type="text"
                   value={ingredient}
                   onChange={(e) => handleIngredientChange(index, e.target.value)}
-                  className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
+                  className={`flex-1 px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors ${
+                    darkMode 
+                      ? 'border-gray-600 bg-gray-700 text-white placeholder-gray-400' 
+                      : 'border-gray-300 bg-white text-gray-900 placeholder-gray-500'
+                  }`}
                   placeholder={`Składnik ${index + 1}`}
                 />
                 {formData.ingredients.length > 1 && (
                   <button
                     type="button"
                     onClick={() => handleRemoveIngredient(index)}
-                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900 rounded-lg transition-colors"
                   >
                     <X className="h-5 w-5" />
                   </button>
@@ -180,22 +236,32 @@ const CreateRecipePage: React.FC = () => {
           <button
             type="button"
             onClick={handleAddIngredient}
-            className="mt-4 flex items-center text-orange-600 hover:text-orange-700 font-medium transition-colors"
+            className="mt-4 flex items-center theme-primary-text hover:opacity-80 font-medium transition-opacity"
           >
             <Plus className="h-5 w-5 mr-2" />
             Dodaj składnik
           </button>
         </div>
 
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">Sposób przygotowania *</h2>
+        <div className={`rounded-xl shadow-md p-6 transition-colors duration-300 ${
+          darkMode ? 'bg-gray-800' : 'bg-white'
+        }`}>
+          <h2 className={`text-xl font-semibold mb-6 transition-colors duration-300 ${
+            darkMode ? 'text-white' : 'text-gray-900'
+          }`}>
+            Sposób przygotowania *
+          </h2>
           
           <textarea
             required
             value={formData.instructions}
             onChange={(e) => setFormData(prev => ({ ...prev, instructions: e.target.value }))}
             rows={8}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors resize-vertical"
+            className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors resize-vertical ${
+              darkMode 
+                ? 'border-gray-600 bg-gray-700 text-white placeholder-gray-400' 
+                : 'border-gray-300 bg-white text-gray-900 placeholder-gray-500'
+            }`}
             placeholder="Opisz krok po kroku, jak przygotować to danie..."
           />
         </div>
@@ -204,13 +270,17 @@ const CreateRecipePage: React.FC = () => {
           <button
             type="button"
             onClick={() => navigate('/')}
-            className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+            className={`px-6 py-3 border rounded-lg font-medium transition-colors ${
+              darkMode 
+                ? 'border-gray-600 text-gray-300 hover:bg-gray-700' 
+                : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+            }`}
           >
             Anuluj
           </button>
           <button
             type="submit"
-            className="px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 font-medium transition-colors flex items-center"
+            className="theme-primary text-white px-6 py-3 rounded-lg font-medium hover:opacity-90 transition-opacity flex items-center"
           >
             <Plus className="h-5 w-5 mr-2" />
             Dodaj przepis

@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import { Search, UserPlus, Check, X, Users } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 
 const FriendsPage: React.FC = () => {
   const { user } = useAuth();
+  const { darkMode } = useTheme();
   const { 
     friends, 
     friendRequests, 
@@ -44,21 +46,41 @@ const FriendsPage: React.FC = () => {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Znajomi</h1>
-        <p className="text-gray-600">Zarządzaj swoimi znajomymi i odkrywaj nowych użytkowników</p>
+        <h1 className={`text-3xl font-bold mb-2 transition-colors duration-300 ${
+          darkMode ? 'text-white' : 'text-gray-900'
+        }`}>
+          Znajomi
+        </h1>
+        <p className={`transition-colors duration-300 ${
+          darkMode ? 'text-gray-400' : 'text-gray-600'
+        }`}>
+          Zarządzaj swoimi znajomymi i odkrywaj nowych użytkowników
+        </p>
       </div>
 
       {/* Search Section */}
-      <div className="bg-white rounded-xl shadow-md p-6 mb-8">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Znajdź nowych znajomych</h2>
+      <div className={`rounded-xl shadow-md p-6 mb-8 transition-colors duration-300 ${
+        darkMode ? 'bg-gray-800' : 'bg-white'
+      }`}>
+        <h2 className={`text-xl font-semibold mb-4 transition-colors duration-300 ${
+          darkMode ? 'text-white' : 'text-gray-900'
+        }`}>
+          Znajdź nowych znajomych
+        </h2>
         
         <div className="relative mb-6">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+          <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 transition-colors duration-300 ${
+            darkMode ? 'text-gray-400' : 'text-gray-400'
+          }`} />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => handleSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
+            className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors ${
+              darkMode 
+                ? 'border-gray-600 bg-gray-700 text-white placeholder-gray-400' 
+                : 'border-gray-300 bg-white text-gray-900 placeholder-gray-500'
+            }`}
             placeholder="Wyszukaj użytkowników po nazwie..."
           />
         </div>
@@ -66,14 +88,28 @@ const FriendsPage: React.FC = () => {
         {searchResults.length > 0 && (
           <div className="space-y-3">
             {searchResults.map((searchUser) => (
-              <div key={searchUser.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+              <div key={searchUser.id} className={`flex items-center justify-between p-4 border rounded-lg transition-colors duration-300 ${
+                darkMode ? 'border-gray-600' : 'border-gray-200'
+              }`}>
                 <div className="flex items-center space-x-3">
-                  <div className="h-10 w-10 bg-gray-200 rounded-full flex items-center justify-center">
-                    <Users className="h-5 w-5 text-gray-600" />
+                  <div className={`h-10 w-10 rounded-full flex items-center justify-center transition-colors duration-300 ${
+                    darkMode ? 'bg-gray-700' : 'bg-gray-200'
+                  }`}>
+                    <Users className={`h-5 w-5 transition-colors duration-300 ${
+                      darkMode ? 'text-gray-400' : 'text-gray-600'
+                    }`} />
                   </div>
                   <div>
-                    <p className="font-semibold text-gray-900">{searchUser.username}</p>
-                    <p className="text-sm text-gray-600">{searchUser.email}</p>
+                    <p className={`font-semibold transition-colors duration-300 ${
+                      darkMode ? 'text-white' : 'text-gray-900'
+                    }`}>
+                      {searchUser.username}
+                    </p>
+                    <p className={`text-sm transition-colors duration-300 ${
+                      darkMode ? 'text-gray-400' : 'text-gray-600'
+                    }`}>
+                      {searchUser.email}
+                    </p>
                   </div>
                 </div>
                 
@@ -84,7 +120,7 @@ const FriendsPage: React.FC = () => {
                 ) : (
                   <button
                     onClick={() => sendFriendRequest(searchUser.id)}
-                    className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors flex items-center"
+                    className="theme-primary text-white px-4 py-2 rounded-lg hover:opacity-90 transition-opacity flex items-center"
                   >
                     <UserPlus className="h-4 w-4 mr-2" />
                     Dodaj
@@ -98,21 +134,37 @@ const FriendsPage: React.FC = () => {
 
       {/* Friend Requests */}
       {pendingRequests.length > 0 && (
-        <div className="bg-white rounded-xl shadow-md p-6 mb-8">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">
+        <div className={`rounded-xl shadow-md p-6 mb-8 transition-colors duration-300 ${
+          darkMode ? 'bg-gray-800' : 'bg-white'
+        }`}>
+          <h2 className={`text-xl font-semibold mb-4 transition-colors duration-300 ${
+            darkMode ? 'text-white' : 'text-gray-900'
+          }`}>
             Zaproszenia do znajomych ({pendingRequests.length})
           </h2>
           
           <div className="space-y-3">
             {pendingRequests.map((request) => (
-              <div key={request.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+              <div key={request.id} className={`flex items-center justify-between p-4 border rounded-lg transition-colors duration-300 ${
+                darkMode ? 'border-gray-600' : 'border-gray-200'
+              }`}>
                 <div className="flex items-center space-x-3">
-                  <div className="h-10 w-10 bg-gray-200 rounded-full flex items-center justify-center">
-                    <Users className="h-5 w-5 text-gray-600" />
+                  <div className={`h-10 w-10 rounded-full flex items-center justify-center transition-colors duration-300 ${
+                    darkMode ? 'bg-gray-700' : 'bg-gray-200'
+                  }`}>
+                    <Users className={`h-5 w-5 transition-colors duration-300 ${
+                      darkMode ? 'text-gray-400' : 'text-gray-600'
+                    }`} />
                   </div>
                   <div>
-                    <p className="font-semibold text-gray-900">{request.fromUsername}</p>
-                    <p className="text-sm text-gray-600">
+                    <p className={`font-semibold transition-colors duration-300 ${
+                      darkMode ? 'text-white' : 'text-gray-900'
+                    }`}>
+                      {request.fromUsername}
+                    </p>
+                    <p className={`text-sm transition-colors duration-300 ${
+                      darkMode ? 'text-gray-400' : 'text-gray-600'
+                    }`}>
                       Wysłano {new Date(request.createdAt).toLocaleDateString('pl-PL')}
                     </p>
                   </div>
@@ -141,23 +193,45 @@ const FriendsPage: React.FC = () => {
       )}
 
       {/* Friends List */}
-      <div className="bg-white rounded-xl shadow-md p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">
+      <div className={`rounded-xl shadow-md p-6 transition-colors duration-300 ${
+        darkMode ? 'bg-gray-800' : 'bg-white'
+      }`}>
+        <h2 className={`text-xl font-semibold mb-4 transition-colors duration-300 ${
+          darkMode ? 'text-white' : 'text-gray-900'
+        }`}>
           Moi znajomi ({friends.length})
         </h2>
         
         {friends.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {friends.map((friend) => (
-              <div key={friend.id} className="flex items-center space-x-3 p-4 border border-gray-200 rounded-lg">
-                <div className="h-12 w-12 bg-gray-200 rounded-full flex items-center justify-center">
-                  <Users className="h-6 w-6 text-gray-600" />
+              <div key={friend.id} className={`flex items-center space-x-3 p-4 border rounded-lg transition-colors duration-300 ${
+                darkMode ? 'border-gray-600' : 'border-gray-200'
+              }`}>
+                <div className={`h-12 w-12 rounded-full flex items-center justify-center transition-colors duration-300 ${
+                  darkMode ? 'bg-gray-700' : 'bg-gray-200'
+                }`}>
+                  <Users className={`h-6 w-6 transition-colors duration-300 ${
+                    darkMode ? 'text-gray-400' : 'text-gray-600'
+                  }`} />
                 </div>
                 <div className="flex-1">
-                  <p className="font-semibold text-gray-900">{friend.username}</p>
-                  <p className="text-sm text-gray-600">{friend.email}</p>
+                  <p className={`font-semibold transition-colors duration-300 ${
+                    darkMode ? 'text-white' : 'text-gray-900'
+                  }`}>
+                    {friend.username}
+                  </p>
+                  <p className={`text-sm transition-colors duration-300 ${
+                    darkMode ? 'text-gray-400' : 'text-gray-600'
+                  }`}>
+                    {friend.email}
+                  </p>
                   {friend.bio && (
-                    <p className="text-sm text-gray-500 mt-1">{friend.bio}</p>
+                    <p className={`text-sm mt-1 transition-colors duration-300 ${
+                      darkMode ? 'text-gray-500' : 'text-gray-500'
+                    }`}>
+                      {friend.bio}
+                    </p>
                   )}
                 </div>
               </div>
@@ -165,13 +239,21 @@ const FriendsPage: React.FC = () => {
           </div>
         ) : (
           <div className="text-center py-8">
-            <div className="bg-gray-100 rounded-full p-6 w-24 h-24 mx-auto mb-4 flex items-center justify-center">
-              <Users className="h-8 w-8 text-gray-400" />
+            <div className={`rounded-full p-6 w-24 h-24 mx-auto mb-4 flex items-center justify-center transition-colors duration-300 ${
+              darkMode ? 'bg-gray-700' : 'bg-gray-100'
+            }`}>
+              <Users className={`h-8 w-8 transition-colors duration-300 ${
+                darkMode ? 'text-gray-400' : 'text-gray-400'
+              }`} />
             </div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">
+            <h3 className={`text-xl font-semibold mb-2 transition-colors duration-300 ${
+              darkMode ? 'text-white' : 'text-gray-900'
+            }`}>
               Brak znajomych
             </h3>
-            <p className="text-gray-600">
+            <p className={`transition-colors duration-300 ${
+              darkMode ? 'text-gray-400' : 'text-gray-600'
+            }`}>
               Wyszukaj innych użytkowników i zaproś ich do znajomych!
             </p>
           </div>
