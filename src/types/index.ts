@@ -11,6 +11,25 @@ export interface User {
   followers?: string[];
   following?: string[];
   favoriteRecipes?: string[];
+  badges?: UserBadge[];
+  preferences?: UserPreferences;
+}
+
+export interface UserBadge {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  color: string;
+  earnedAt: string;
+}
+
+export interface UserPreferences {
+  emailNotifications: boolean;
+  publicProfile: boolean;
+  showEmail: boolean;
+  language: 'pl' | 'en';
+  timezone: string;
 }
 
 export interface Recipe {
@@ -33,6 +52,19 @@ export interface Recipe {
   comments?: Comment[];
   reports?: Report[];
   viewCount?: number;
+  rating?: number;
+  nutritionInfo?: NutritionInfo;
+  isPrivate?: boolean;
+  originalUrl?: string;
+}
+
+export interface NutritionInfo {
+  calories?: number;
+  protein?: number;
+  carbs?: number;
+  fat?: number;
+  fiber?: number;
+  sugar?: number;
 }
 
 export interface Comment {
@@ -44,6 +76,7 @@ export interface Comment {
   createdAt: string;
   likes?: string[];
   reports?: Report[];
+  parentId?: string; // For nested comments
 }
 
 export interface Report {
@@ -55,6 +88,8 @@ export interface Report {
   description?: string;
   status: 'pending' | 'reviewed' | 'resolved';
   createdAt: string;
+  reviewedBy?: string;
+  reviewedAt?: string;
 }
 
 export interface FriendRequest {
@@ -79,6 +114,8 @@ export interface ShoppingListItem {
   checked: boolean;
   recipeId?: string;
   recipeTitle?: string;
+  quantity?: string;
+  category?: string;
 }
 
 export interface Theme {
@@ -94,10 +131,20 @@ export interface Theme {
   };
 }
 
+export interface Notification {
+  id: string;
+  userId: string;
+  type: 'like' | 'comment' | 'follow' | 'recipe_featured' | 'badge_earned';
+  title: string;
+  message: string;
+  read: boolean;
+  createdAt: string;
+  actionUrl?: string;
+}
+
 export interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<boolean>;
-  loginWithGitHub: () => Promise<boolean>;
   register: (username: string, email: string, password: string) => Promise<boolean>;
   logout: () => void;
   updateProfile: (updates: Partial<User>) => Promise<boolean>;
@@ -115,6 +162,7 @@ export interface AppContextType {
   allUsers: User[];
   shoppingList: ShoppingListItem[];
   reports: Report[];
+  notifications: Notification[];
   darkMode: boolean;
   currentTheme: Theme;
   addRecipe: (recipe: Omit<Recipe, 'id' | 'authorId' | 'authorUsername' | 'createdAt' | 'updatedAt'>) => void;
@@ -142,6 +190,9 @@ export interface AppContextType {
   getAllUsers: () => User[];
   toggleDarkMode: () => void;
   setTheme: (theme: Theme) => void;
+  markNotificationAsRead: (notificationId: string) => void;
+  clearAllNotifications: () => void;
+  awardBadge: (userId: string, badge: UserBadge) => void;
 }
 
 export interface RecipeFilters {
@@ -150,4 +201,6 @@ export interface RecipeFilters {
   maxTime?: number;
   tags?: string[];
   ingredients?: string[];
+  rating?: number;
+  isPrivate?: boolean;
 }

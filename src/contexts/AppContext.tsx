@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Recipe, User, FriendRequest, AppContextType, Comment, Report, ShoppingListItem, RecipeFilters, Theme } from '../types';
+import { Recipe, User, FriendRequest, AppContextType, Comment, Report, ShoppingListItem, RecipeFilters, Theme, Notification, UserBadge } from '../types';
 import { useAuth } from './AuthContext';
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -9,6 +9,7 @@ const FRIENDS_STORAGE_KEY = 'polskie-przepisy-friends';
 const FRIEND_REQUESTS_STORAGE_KEY = 'polskie-przepisy-friend-requests';
 const SHOPPING_LIST_STORAGE_KEY = 'polskie-przepisy-shopping-list';
 const REPORTS_STORAGE_KEY = 'polskie-przepisy-reports';
+const NOTIFICATIONS_STORAGE_KEY = 'polskie-przepisy-notifications';
 const THEME_STORAGE_KEY = 'polskie-przepisy-theme';
 
 const defaultTheme: Theme = {
@@ -24,7 +25,87 @@ const defaultTheme: Theme = {
   }
 };
 
-const initialRecipes: Recipe[] = [];
+// Sample recipes for demo
+const initialRecipes: Recipe[] = [
+  {
+    id: 'demo-1',
+    title: 'Klasyczne Pierogi z Kapustą i Grzybami',
+    ingredients: [
+      '500g mąki pszennej',
+      '250ml ciepłej wody',
+      '1 łyżka oleju',
+      '1 łyżeczka soli',
+      '500g kiszonej kapusty',
+      '200g suszonych grzybów',
+      '2 cebule',
+      'Sól i pieprz do smaku'
+    ],
+    instructions: `1. Przygotuj ciasto: Wymieszaj mąkę z solą, dodaj wodę z olejem i wyrabiaj do uzyskania gładkiego ciasta.
+
+2. Przygotuj farsz: Namocz grzyby w ciepłej wodzie na 30 minut. Pokrój cebulę i podsmaż na patelni. Dodaj odsączoną kapustę i pokrojone grzyby. Duś około 20 minut.
+
+3. Formuj pierogi: Rozwałkuj ciasto na cienki placek. Wykrawaj kółka szklanką. Na każde kółko połóż łyżkę farszu i sklej brzegi.
+
+4. Gotuj w osolonej wodzie około 5 minut od wypłynięcia na powierzchnię.
+
+5. Podawaj z podsmażoną cebulką i śmietaną.`,
+    authorId: 'admin-001',
+    authorUsername: 'P7 Poland Admin',
+    createdAt: '2024-01-15T10:00:00Z',
+    updatedAt: '2024-01-15T10:00:00Z',
+    cookingTime: 90,
+    servings: 6,
+    difficulty: 'średni',
+    category: 'Dania główne',
+    tags: ['tradycyjne', 'polskie', 'wegetariańskie'],
+    likes: [],
+    favorites: [],
+    comments: [],
+    reports: [],
+    viewCount: 0,
+    image: 'https://images.pexels.com/photos/4518843/pexels-photo-4518843.jpeg'
+  },
+  {
+    id: 'demo-2',
+    title: 'Szybka Zupa Pomidorowa',
+    ingredients: [
+      '1 słoik passaty pomidorowej (500g)',
+      '500ml bulionu warzywnego',
+      '200ml śmietany 18%',
+      '2 ząbki czosnku',
+      '1 cebula',
+      'Świeża bazylia',
+      'Sól i pieprz',
+      'Makaron lub ryż do podania'
+    ],
+    instructions: `1. Pokrój cebulę w kostkę i podsmaż na oleju do zeszklenia.
+
+2. Dodaj przeciśnięty czosnek i smaż jeszcze minutę.
+
+3. Wlej passatę pomidorową i bulion. Gotuj 10 minut.
+
+4. Zmiksuj zupę blenderem na gładką masę.
+
+5. Dodaj śmietanę, dopraw solą i pieprzem.
+
+6. Podawaj z makaronem lub ryżem, posyp świeżą bazylią.`,
+    authorId: 'admin-001',
+    authorUsername: 'P7 Poland Admin',
+    createdAt: '2024-01-20T14:30:00Z',
+    updatedAt: '2024-01-20T14:30:00Z',
+    cookingTime: 25,
+    servings: 4,
+    difficulty: 'łatwy',
+    category: 'Zupy',
+    tags: ['szybkie', 'zupa', 'pomidorowa'],
+    likes: [],
+    favorites: [],
+    comments: [],
+    reports: [],
+    viewCount: 0,
+    image: 'https://images.pexels.com/photos/6287284/pexels-photo-6287284.jpeg'
+  }
+];
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { user, getAllUsers } = useAuth();
@@ -33,6 +114,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([]);
   const [shoppingList, setShoppingList] = useState<ShoppingListItem[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [darkMode, setDarkMode] = useState(false);
   const [currentTheme, setCurrentTheme] = useState<Theme>(defaultTheme);
 
@@ -43,6 +125,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const storedFriendRequests = localStorage.getItem(FRIEND_REQUESTS_STORAGE_KEY);
     const storedShoppingList = localStorage.getItem(SHOPPING_LIST_STORAGE_KEY);
     const storedReports = localStorage.getItem(REPORTS_STORAGE_KEY);
+    const storedNotifications = localStorage.getItem(NOTIFICATIONS_STORAGE_KEY);
     const storedDarkMode = localStorage.getItem('darkMode') === 'true';
     const storedTheme = localStorage.getItem(THEME_STORAGE_KEY);
 
@@ -51,12 +134,30 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setFriendRequests(storedFriendRequests ? JSON.parse(storedFriendRequests) : []);
     setShoppingList(storedShoppingList ? JSON.parse(storedShoppingList) : []);
     setReports(storedReports ? JSON.parse(storedReports) : []);
+    setNotifications(storedNotifications ? JSON.parse(storedNotifications) : []);
     setDarkMode(storedDarkMode);
     setCurrentTheme(storedTheme ? JSON.parse(storedTheme) : defaultTheme);
   }, []);
 
   const saveToStorage = (key: string, data: any) => {
     localStorage.setItem(key, JSON.stringify(data));
+  };
+
+  const createNotification = (userId: string, type: Notification['type'], title: string, message: string, actionUrl?: string) => {
+    const notification: Notification = {
+      id: Date.now().toString(),
+      userId,
+      type,
+      title,
+      message,
+      read: false,
+      createdAt: new Date().toISOString(),
+      actionUrl
+    };
+
+    const updatedNotifications = [...notifications, notification];
+    setNotifications(updatedNotifications);
+    saveToStorage(NOTIFICATIONS_STORAGE_KEY, updatedNotifications);
   };
 
   const addRecipe = (recipeData: Omit<Recipe, 'id' | 'authorId' | 'authorUsername' | 'createdAt' | 'updatedAt'>) => {
@@ -79,6 +180,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const updatedRecipes = [...recipes, newRecipe];
     setRecipes(updatedRecipes);
     saveToStorage(RECIPES_STORAGE_KEY, updatedRecipes);
+
+    // Create notification for followers
+    const allUsers = getAllUsers();
+    const followers = allUsers.filter(u => u.following?.includes(user.id));
+    followers.forEach(follower => {
+      createNotification(
+        follower.id,
+        'recipe_featured',
+        'Nowy przepis!',
+        `${user.displayName || user.username} dodał nowy przepis: ${newRecipe.title}`,
+        `/recipe/${newRecipe.id}`
+      );
+    });
   };
 
   const updateRecipe = (id: string, updateData: Partial<Recipe>) => {
@@ -102,6 +216,17 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       if (recipe.id === recipeId) {
         const likes = recipe.likes || [];
         const isLiked = likes.includes(user.id);
+        
+        // Create notification for recipe author if not self-like
+        if (!isLiked && recipe.authorId !== user.id) {
+          createNotification(
+            recipe.authorId,
+            'like',
+            'Nowe polubienie!',
+            `${user.displayName || user.username} polubił Twój przepis: ${recipe.title}`,
+            `/recipe/${recipe.id}`
+          );
+        }
         
         return {
           ...recipe,
@@ -155,6 +280,17 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     const updatedRecipes = recipes.map(recipe => {
       if (recipe.id === recipeId) {
+        // Create notification for recipe author if not self-comment
+        if (recipe.authorId !== user.id) {
+          createNotification(
+            recipe.authorId,
+            'comment',
+            'Nowy komentarz!',
+            `${user.displayName || user.username} skomentował Twój przepis: ${recipe.title}`,
+            `/recipe/${recipe.id}`
+          );
+        }
+
         return {
           ...recipe,
           comments: [...(recipe.comments || []), newComment]
@@ -209,7 +345,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       servings: 4,
       difficulty: 'średni' as const,
       category: 'Dania główne',
-      tags: ['importowany', 'szybki']
+      tags: ['importowany', 'szybki'],
+      originalUrl: url
     };
 
     addRecipe(importedRecipe);
@@ -354,6 +491,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const updatedRequests = [...friendRequests, newRequest];
     setFriendRequests(updatedRequests);
     saveToStorage(FRIEND_REQUESTS_STORAGE_KEY, updatedRequests);
+
+    // Create notification for the recipient
+    createNotification(
+      toUserId,
+      'follow',
+      'Nowe zaproszenie do znajomych!',
+      `${user.displayName || user.username} wysłał Ci zaproszenie do znajomych`,
+      '/friends'
+    );
   };
 
   const acceptFriendRequest = (requestId: string) => {
@@ -411,6 +557,31 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return recipe;
   };
 
+  const markNotificationAsRead = (notificationId: string) => {
+    const updatedNotifications = notifications.map(notification =>
+      notification.id === notificationId ? { ...notification, read: true } : notification
+    );
+    setNotifications(updatedNotifications);
+    saveToStorage(NOTIFICATIONS_STORAGE_KEY, updatedNotifications);
+  };
+
+  const clearAllNotifications = () => {
+    setNotifications([]);
+    saveToStorage(NOTIFICATIONS_STORAGE_KEY, []);
+  };
+
+  const awardBadge = (userId: string, badge: UserBadge) => {
+    // This would typically update the user's badges in the auth context
+    // For now, we'll create a notification
+    createNotification(
+      userId,
+      'badge_earned',
+      'Nowa odznaka!',
+      `Gratulacje! Zdobyłeś odznakę: ${badge.name}`,
+      '/profile'
+    );
+  };
+
   return (
     <AppContext.Provider value={{
       recipes,
@@ -419,6 +590,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       allUsers: getAllUsers(),
       shoppingList,
       reports,
+      notifications,
       darkMode,
       currentTheme,
       addRecipe,
@@ -445,7 +617,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       deleteUser,
       getAllUsers,
       toggleDarkMode,
-      setTheme
+      setTheme,
+      markNotificationAsRead,
+      clearAllNotifications,
+      awardBadge
     }}>
       {children}
     </AppContext.Provider>
