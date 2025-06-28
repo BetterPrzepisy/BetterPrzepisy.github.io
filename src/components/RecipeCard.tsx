@@ -68,9 +68,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onClick, showActions = 
       
       <div className="p-6">
         <div className="flex items-center justify-between mb-3">
-          <h3 className={`text-xl font-semibold truncate flex-1 mr-2 transition-colors duration-300 theme-heading ${
-            darkMode ? 'text-gray-100' : 'text-gray-900'
-          }`}>
+          <h3 className={`text-xl font-semibold truncate flex-1 mr-2 recipe-title transition-colors duration-300`}>
             {recipe.title}
           </h3>
           {!recipe.image && recipe.difficulty && (
@@ -147,7 +145,9 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onClick, showActions = 
         </div>
 
         {showActions && (
-          <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
+          <div className={`flex items-center justify-between pt-4 border-t transition-colors duration-300 ${
+            darkMode ? 'border-gray-700' : 'border-gray-200'
+          }`}>
             <div className="flex items-center space-x-4">
               <motion.button
                 whileHover={{ scale: 1.1 }}

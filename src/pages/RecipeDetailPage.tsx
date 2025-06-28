@@ -100,9 +100,7 @@ const RecipeDetailPage: React.FC = () => {
         
         <div className="p-8">
           <div className="flex items-start justify-between mb-4">
-            <h1 className={`text-3xl font-bold flex-1 mr-4 transition-colors duration-300 ${
-              darkMode ? 'text-white' : 'text-gray-900'
-            }`}>
+            <h1 className={`text-3xl font-bold flex-1 mr-4 recipe-title transition-colors duration-300`}>
               {recipe.title}
             </h1>
             <div className="flex items-center space-x-2">

@@ -239,3 +239,59 @@
   color: var(--color-primary) !important;
   filter: brightness(0.7);
 }
+
+/* Dark mode theme adjustments */
+.dark .theme-bg-light {
+  background-color: var(--color-primary) !important;
+  filter: brightness(0.3);
+}
+
+.dark .theme-text-light {
+  color: var(--color-secondary) !important;
+  filter: brightness(1.2);
+}
+
+.dark .theme-icon {
+  color: var(--color-secondary) !important;
+  filter: brightness(1.1);
+}
+
+.dark .theme-heading {
+  color: var(--color-secondary) !important;
+  filter: brightness(1.1);
+}
+
+.dark .theme-primary-text {
+  color: var(--color-secondary) !important;
+  filter: brightness(1.1);
+}
+
+/* Recipe name specific class - no theme colors */
+.recipe-title {
+  color: inherit !important;
+}
+
+.dark .recipe-title {
+  color: #f9fafb !important;
+}
+
+/* Ensure proper text colors in dark mode */
+.dark .text-gray-900 {
+  color: #f9fafb !important;
+}
+
+.dark .text-gray-800 {
+  color: #f3f4f6 !important;
+}
+
+.dark .text-gray-700 {
+  color: #e5e7eb !important;
+}
+
+.dark .text-gray-600 {
+  color: #d1d5db !important;
+}
+
+.dark .text-gray-500 {
+  color: #9ca3af !important;
+}
