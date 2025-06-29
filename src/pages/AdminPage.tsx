@@ -1,109 +1,245 @@
-import React, { useState } from 'react';
-import { Shield, Users, BookOpen, Trash2, AlertTriangle, Search, CheckCircle, UserCheck, TrendingUp, Activity, BarChart3, Eye, MessageCircle, Heart, Calendar, Download, Filter, RefreshCw, Bell, Settings, Database, Globe } from 'lucide-react';
-import { motion } from 'framer-motion';
+import React, { useState, useMemo } from 'react';
+import { 
+  Shield, 
+  Users, 
+  BookOpen, 
+  TrendingUp, 
+  AlertTriangle, 
+  Settings,
+  Search,
+  Filter,
+  Download,
+  Trash2,
+  Edit,
+  CheckCircle,
+  XCircle,
+  Eye,
+  Heart,
+  MessageCircle,
+  Calendar,
+  BarChart3,
+  PieChart,
+  Activity,
+  UserCheck,
+  UserX,
+  Crown,
+  Star,
+  Clock,
+  ChevronDown,
+  ChevronUp,
+  RefreshCw
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { useApp } from '../contexts/AppContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { Navigate } from 'react-router-dom';
 
 const AdminPage: React.FC = () => {
-  const { user, updateUserRole, getAllUsers } = useAuth();
-  const { recipes, deleteUser, deleteRecipe, reports, notifications } = useApp();
+  const { user, getAllUsers, updateUserRole } = useAuth();
+  const { 
+    recipes, 
+    reports, 
+    notifications, 
+    deleteUser, 
+    deleteRecipe,
+    clearAllNotifications 
+  } = useApp();
   const { darkMode } = useTheme();
+  
+  const [activeTab, setActiveTab] = useState('overview');
   const [searchQuery, setSearchQuery] = useState('');
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
-  const [deleteType, setDeleteType] = useState<'user' | 'recipe'>('user');
-  const [showRoleModal, setShowRoleModal] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'recipes' | 'analytics' | 'reports' | 'system'>('overview');
-  const [dateRange, setDateRange] = useState<'7d' | '30d' | '90d' | 'all'>('30d');
+  const [userFilter, setUserFilter] = useState<'all' | 'admin' | 'user' | 'verified'>('all');
+  const [sortBy, setSortBy] = useState<'name' | 'date' | 'recipes' | 'role'>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
 
   if (!user || user.role !== 'admin') {
     return <Navigate to="/" replace />;
   }
 
-  const allUsers = getAllUsers().filter(u => u.role !== 'admin');
-  const filteredUsers = allUsers.filter(u => 
-    u.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (u.displayName && u.displayName.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  const allUsers = getAllUsers();
 
   // Analytics calculations
-  const totalLikes = recipes.reduce((sum, recipe) => sum + (recipe.likes?.length || 0), 0);
-  const totalViews = recipes.reduce((sum, recipe) => sum + (recipe.viewCount || 0), 0);
-  const totalComments = recipes.reduce((sum, recipe) => sum + (recipe.comments?.length || 0), 0);
-  const verifiedUsers = allUsers.filter(u => u.isVerified).length;
-  const activeUsers = allUsers.filter(u => {
-    const lastWeek = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    return new Date(u.createdAt) > lastWeek;
-  }).length;
+  const analytics = useMemo(() => {
+    const totalUsers = allUsers.length;
+    const totalRecipes = recipes.length;
+    const totalReports = reports.length;
+    const pendingReports = reports.filter(r => r.status === 'pending').length;
+    
+    const usersByRole = allUsers.reduce((acc, user) => {
+      acc[user.role || 'user'] = (acc[user.role || 'user'] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
 
-  // Growth calculations
-  const lastMonth = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-  const newUsersThisMonth = allUsers.filter(u => new Date(u.createdAt) > lastMonth).length;
-  const newRecipesThisMonth = recipes.filter(r => new Date(r.createdAt) > lastMonth).length;
+    const verifiedUsers = allUsers.filter(u => u.isVerified).length;
+    
+    const recipesByCategory = recipes.reduce((acc, recipe) => {
+      const category = recipe.category || 'Inne';
+      acc[category] = (acc[category] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
 
-  const handleDeleteUser = (userId: string) => {
-    deleteUser(userId);
-    setShowDeleteConfirm(null);
+    const totalLikes = recipes.reduce((sum, recipe) => sum + (recipe.likes?.length || 0), 0);
+    const totalViews = recipes.reduce((sum, recipe) => sum + (recipe.viewCount || 0), 0);
+    const totalComments = recipes.reduce((sum, recipe) => sum + (recipe.comments?.length || 0), 0);
+
+    // User activity in last 30 days
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const recentUsers = allUsers.filter(u => new Date(u.createdAt) >= thirtyDaysAgo).length;
+    const recentRecipes = recipes.filter(r => new Date(r.createdAt) >= thirtyDaysAgo).length;
+
+    // Top users by recipes
+    const userRecipeCounts = allUsers.map(user => ({
+      ...user,
+      recipeCount: recipes.filter(r => r.authorId === user.id).length,
+      totalLikes: recipes
+        .filter(r => r.authorId === user.id)
+        .reduce((sum, r) => sum + (r.likes?.length || 0), 0)
+    })).sort((a, b) => b.recipeCount - a.recipeCount);
+
+    return {
+      totalUsers,
+      totalRecipes,
+      totalReports,
+      pendingReports,
+      usersByRole,
+      verifiedUsers,
+      recipesByCategory,
+      totalLikes,
+      totalViews,
+      totalComments,
+      recentUsers,
+      recentRecipes,
+      topUsers: userRecipeCounts.slice(0, 10),
+      averageRecipesPerUser: totalUsers > 0 ? (totalRecipes / totalUsers).toFixed(1) : '0'
+    };
+  }, [allUsers, recipes, reports]);
+
+  // Filter and sort users
+  const filteredUsers = useMemo(() => {
+    let filtered = allUsers.filter(u => {
+      const matchesSearch = !searchQuery || 
+        u.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (u.displayName && u.displayName.toLowerCase().includes(searchQuery.toLowerCase()));
+      
+      const matchesFilter = userFilter === 'all' || 
+        (userFilter === 'admin' && u.role === 'admin') ||
+        (userFilter === 'user' && u.role !== 'admin') ||
+        (userFilter === 'verified' && u.isVerified);
+      
+      return matchesSearch && matchesFilter;
+    });
+
+    // Sort users
+    filtered.sort((a, b) => {
+      let aValue: any, bValue: any;
+      
+      switch (sortBy) {
+        case 'name':
+          aValue = a.username.toLowerCase();
+          bValue = b.username.toLowerCase();
+          break;
+        case 'date':
+          aValue = new Date(a.createdAt);
+          bValue = new Date(b.createdAt);
+          break;
+        case 'recipes':
+          aValue = recipes.filter(r => r.authorId === a.id).length;
+          bValue = recipes.filter(r => r.authorId === b.id).length;
+          break;
+        case 'role':
+          aValue = a.role === 'admin' ? 1 : 0;
+          bValue = b.role === 'admin' ? 1 : 0;
+          break;
+        default:
+          return 0;
+      }
+      
+      if (sortOrder === 'asc') {
+        return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
+      } else {
+        return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
+      }
+    });
+
+    return filtered;
+  }, [allUsers, searchQuery, userFilter, sortBy, sortOrder, recipes]);
+
+  const handleDeleteUser = async (userId: string) => {
+    const userToDelete = allUsers.find(u => u.id === userId);
+    if (!userToDelete) return;
+
+    if (userToDelete.role === 'admin') {
+      alert('Nie można usunąć konta administratora');
+      return;
+    }
+
+    if (window.confirm(`Czy na pewno chcesz usunąć użytkownika ${userToDelete.username}? Ta akcja nie może zostać cofnięta.`)) {
+      deleteUser(userId);
+    }
   };
 
-  const handleDeleteRecipe = (recipeId: string) => {
-    deleteRecipe(recipeId);
-    setShowDeleteConfirm(null);
+  const handleBulkDelete = () => {
+    const adminUsers = selectedUsers.filter(id => {
+      const user = allUsers.find(u => u.id === id);
+      return user?.role === 'admin';
+    });
+
+    if (adminUsers.length > 0) {
+      alert('Nie można usunąć kont administratorów');
+      return;
+    }
+
+    if (window.confirm(`Czy na pewno chcesz usunąć ${selectedUsers.length} użytkowników? Ta akcja nie może zostać cofnięta.`)) {
+      selectedUsers.forEach(userId => deleteUser(userId));
+      setSelectedUsers([]);
+    }
   };
 
-  const confirmDelete = (id: string, type: 'user' | 'recipe') => {
-    setShowDeleteConfirm(id);
-    setDeleteType(type);
+  const handleToggleUserRole = async (userId: string) => {
+    const targetUser = allUsers.find(u => u.id === userId);
+    if (!targetUser) return;
+
+    const newRole = targetUser.role === 'admin' ? 'user' : 'admin';
+    const success = await updateUserRole(userId, newRole, targetUser.isVerified || false);
+    
+    if (success) {
+      // Refresh will happen automatically through context
+    }
   };
 
-  const handleUpdateUserRole = async (userId: string, role: 'user' | 'admin', isVerified: boolean) => {
-    await updateUserRole(userId, role, isVerified);
-    setShowRoleModal(null);
+  const handleToggleVerification = async (userId: string) => {
+    const targetUser = allUsers.find(u => u.id === userId);
+    if (!targetUser) return;
+
+    const success = await updateUserRole(userId, targetUser.role || 'user', !targetUser.isVerified);
+    
+    if (success) {
+      // Refresh will happen automatically through context
+    }
   };
 
   const exportData = (type: 'users' | 'recipes' | 'analytics') => {
-    let data: any[] = [];
-    let filename = '';
+    let data: any;
+    let filename: string;
 
     switch (type) {
       case 'users':
-        data = allUsers.map(u => ({
-          username: u.username,
-          email: u.email,
-          displayName: u.displayName,
-          isVerified: u.isVerified,
-          createdAt: u.createdAt,
-          recipesCount: recipes.filter(r => r.authorId === u.id).length
+        data = allUsers.map(({ ...user }) => ({
+          ...user,
+          recipeCount: recipes.filter(r => r.authorId === user.id).length
         }));
-        filename = 'users-export.json';
+        filename = 'users_export.json';
         break;
       case 'recipes':
-        data = recipes.map(r => ({
-          title: r.title,
-          author: r.authorUsername,
-          category: r.category,
-          difficulty: r.difficulty,
-          likes: r.likes?.length || 0,
-          views: r.viewCount || 0,
-          createdAt: r.createdAt
-        }));
-        filename = 'recipes-export.json';
+        data = recipes;
+        filename = 'recipes_export.json';
         break;
       case 'analytics':
-        data = {
-          totalUsers: allUsers.length,
-          totalRecipes: recipes.length,
-          totalLikes,
-          totalViews,
-          totalComments,
-          verifiedUsers,
-          newUsersThisMonth,
-          newRecipesThisMonth,
-          generatedAt: new Date().toISOString()
-        };
-        filename = 'analytics-export.json';
+        data = analytics;
+        filename = 'analytics_export.json';
         break;
     }
 
@@ -117,6 +253,15 @@ const AdminPage: React.FC = () => {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
+
+  const tabs = [
+    { id: 'overview', label: 'Przegląd', icon: BarChart3 },
+    { id: 'users', label: 'Użytkownicy', icon: Users },
+    { id: 'recipes', label: 'Przepisy', icon: BookOpen },
+    { id: 'analytics', label: 'Analityka', icon: TrendingUp },
+    { id: 'reports', label: 'Zgłoszenia', icon: AlertTriangle },
+    { id: 'system', label: 'System', icon: Settings }
+  ];
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -140,27 +285,6 @@ const AdminPage: React.FC = () => {
     }
   };
 
-  const cardVariants = {
-    hidden: { opacity: 0, scale: 0.9 },
-    visible: {
-      opacity: 1,
-      scale: 1,
-      transition: {
-        duration: 0.4,
-        ease: "easeOut"
-      }
-    }
-  };
-
-  const tabs = [
-    { id: 'overview', label: 'Przegląd', icon: BarChart3 },
-    { id: 'users', label: 'Użytkownicy', icon: Users },
-    { id: 'recipes', label: 'Przepisy', icon: BookOpen },
-    { id: 'analytics', label: 'Analityka', icon: TrendingUp },
-    { id: 'reports', label: 'Zgłoszenia', icon: AlertTriangle },
-    { id: 'system', label: 'System', icon: Settings }
-  ];
-
   return (
     <motion.div 
       initial="hidden"
@@ -170,1169 +294,1091 @@ const AdminPage: React.FC = () => {
     >
       {/* Header */}
       <motion.div variants={itemVariants} className="mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center">
-            <motion.div
-              whileHover={{ rotate: 360 }}
-              transition={{ duration: 0.6 }}
-            >
-              <Shield className="h-8 w-8 text-red-600 mr-3" />
-            </motion.div>
-            <div>
-              <h1 className={`text-3xl font-bold transition-colors duration-300 ${
-                darkMode ? 'text-white' : 'text-gray-900'
-              }`}>
-                Panel Administratora
-              </h1>
-              <p className={`transition-colors duration-300 ${
-                darkMode ? 'text-gray-400' : 'text-gray-600'
-              }`}>
-                Zaawansowane zarządzanie systemem
-              </p>
-            </div>
+        <div className="flex items-center mb-4">
+          <motion.div
+            whileHover={{ rotate: 360 }}
+            transition={{ duration: 0.6 }}
+            className="p-3 bg-red-100 dark:bg-red-900 rounded-full mr-4"
+          >
+            <Shield className="h-8 w-8 text-red-600 dark:text-red-400" />
+          </motion.div>
+          <div>
+            <h1 className={`text-3xl font-bold transition-colors duration-300 ${
+              darkMode ? 'text-white' : 'text-gray-900'
+            }`}>
+              Panel Administratora
+            </h1>
+            <p className={`transition-colors duration-300 ${
+              darkMode ? 'text-gray-400' : 'text-gray-600'
+            }`}>
+              Zarządzaj platformą BetterPrzepisy
+            </p>
           </div>
-          
-          <div className="flex items-center space-x-4">
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => window.location.reload()}
-              className={`p-2 rounded-lg transition-colors ${
-                darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'
-              }`}
-              title="Odśwież dane"
-            >
-              <RefreshCw className={`h-5 w-5 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`} />
-            </motion.button>
-            
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className={`p-2 rounded-lg transition-colors relative ${
-                darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'
-              }`}
-              title="Powiadomienia"
-            >
-              <Bell className={`h-5 w-5 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`} />
-              {notifications.filter(n => !n.read).length > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                  {notifications.filter(n => !n.read).length}
-                </span>
-              )}
-            </motion.button>
-          </div>
-        </div>
-
-        {/* Navigation Tabs */}
-        <div className="flex space-x-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
-          {tabs.map((tab) => (
-            <motion.button
-              key={tab.id}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`flex items-center px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-                activeTab === tab.id
-                  ? 'bg-white dark:bg-gray-700 text-orange-600 dark:text-orange-400 shadow-sm'
-                  : darkMode
-                    ? 'text-gray-400 hover:text-gray-200'
-                    : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <tab.icon className="h-4 w-4 mr-2" />
-              {tab.label}
-            </motion.button>
-          ))}
         </div>
       </motion.div>
 
-      {/* Overview Tab */}
-      {activeTab === 'overview' && (
-        <motion.div variants={containerVariants} className="space-y-8">
-          {/* Main Stats */}
-          <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[
-              {
-                icon: Users,
-                value: allUsers.length,
-                label: 'Użytkownicy',
-                change: `+${newUsersThisMonth}`,
-                changeLabel: 'w tym miesiącu',
-                color: 'blue'
-              },
-              {
-                icon: BookOpen,
-                value: recipes.length,
-                label: 'Przepisy',
-                change: `+${newRecipesThisMonth}`,
-                changeLabel: 'w tym miesiącu',
-                color: 'green'
-              },
-              {
-                icon: Eye,
-                value: totalViews,
-                label: 'Wyświetlenia',
-                change: '+12%',
-                changeLabel: 'vs poprzedni miesiąc',
-                color: 'purple'
-              },
-              {
-                icon: Heart,
-                value: totalLikes,
-                label: 'Polubienia',
-                change: '+8%',
-                changeLabel: 'vs poprzedni miesiąc',
-                color: 'red'
-              }
-            ].map((stat, index) => (
-              <motion.div
-                key={index}
-                variants={cardVariants}
-                whileHover={{ 
-                  scale: 1.05,
-                  boxShadow: darkMode 
-                    ? "0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.1)"
-                    : "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)"
-                }}
-                className={`rounded-xl p-6 shadow-md transition-all duration-300 ${
-                  darkMode ? 'bg-gray-800' : 'bg-white'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <motion.p 
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ delay: 0.2 + index * 0.1, type: "spring" }}
-                      className={`text-2xl font-bold transition-colors duration-300 ${
-                        darkMode ? 'text-white' : 'text-gray-900'
-                      }`}
-                    >
-                      {stat.value.toLocaleString()}
-                    </motion.p>
-                    <p className={`text-sm transition-colors duration-300 ${
-                      darkMode ? 'text-gray-400' : 'text-gray-600'
-                    }`}>
-                      {stat.label}
-                    </p>
-                    <div className="flex items-center mt-2 text-xs">
-                      <span className="text-green-500 font-medium">{stat.change}</span>
-                      <span className={`ml-1 transition-colors duration-300 ${
-                        darkMode ? 'text-gray-500' : 'text-gray-500'
-                      }`}>
-                        {stat.changeLabel}
-                      </span>
-                    </div>
-                  </div>
-                  <motion.div 
-                    whileHover={{ rotate: 360 }}
-                    transition={{ duration: 0.6 }}
-                    className={`p-3 bg-${stat.color}-100 dark:bg-${stat.color}-900 rounded-full`}
-                  >
-                    <stat.icon className={`h-6 w-6 text-${stat.color}-600 dark:text-${stat.color}-400`} />
-                  </motion.div>
-                </div>
-              </motion.div>
-            ))}
-          </motion.div>
-
-          {/* Quick Actions */}
-          <motion.div 
-            variants={itemVariants}
-            className={`rounded-xl shadow-md p-6 transition-colors duration-300 ${
-              darkMode ? 'bg-gray-800' : 'bg-white'
-            }`}
-          >
-            <h3 className={`text-lg font-semibold mb-4 transition-colors duration-300 ${
-              darkMode ? 'text-white' : 'text-gray-900'
-            }`}>
-              Szybkie akcje
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Navigation Tabs */}
+      <motion.div variants={itemVariants} className="mb-8">
+        <div className={`border-b transition-colors duration-300 ${
+          darkMode ? 'border-gray-700' : 'border-gray-200'
+        }`}>
+          <nav className="-mb-px flex space-x-8 overflow-x-auto">
+            {tabs.map((tab) => (
               <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => exportData('users')}
-                className="flex items-center p-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg hover:border-blue-500 dark:hover:border-blue-400 transition-colors"
-              >
-                <Download className="h-5 w-5 mr-3 text-blue-600 dark:text-blue-400" />
-                <div className="text-left">
-                  <p className={`font-medium transition-colors duration-300 ${
-                    darkMode ? 'text-white' : 'text-gray-900'
-                  }`}>
-                    Eksportuj użytkowników
-                  </p>
-                  <p className={`text-sm transition-colors duration-300 ${
-                    darkMode ? 'text-gray-400' : 'text-gray-600'
-                  }`}>
-                    Pobierz dane w formacie JSON
-                  </p>
-                </div>
-              </motion.button>
-
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => exportData('recipes')}
-                className="flex items-center p-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg hover:border-green-500 dark:hover:border-green-400 transition-colors"
-              >
-                <Download className="h-5 w-5 mr-3 text-green-600 dark:text-green-400" />
-                <div className="text-left">
-                  <p className={`font-medium transition-colors duration-300 ${
-                    darkMode ? 'text-white' : 'text-gray-900'
-                  }`}>
-                    Eksportuj przepisy
-                  </p>
-                  <p className={`text-sm transition-colors duration-300 ${
-                    darkMode ? 'text-gray-400' : 'text-gray-600'
-                  }`}>
-                    Pobierz dane w formacie JSON
-                  </p>
-                </div>
-              </motion.button>
-
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => exportData('analytics')}
-                className="flex items-center p-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg hover:border-purple-500 dark:hover:border-purple-400 transition-colors"
-              >
-                <Download className="h-5 w-5 mr-3 text-purple-600 dark:text-purple-400" />
-                <div className="text-left">
-                  <p className={`font-medium transition-colors duration-300 ${
-                    darkMode ? 'text-white' : 'text-gray-900'
-                  }`}>
-                    Eksportuj analitykę
-                  </p>
-                  <p className={`text-sm transition-colors duration-300 ${
-                    darkMode ? 'text-gray-400' : 'text-gray-600'
-                  }`}>
-                    Pobierz raport w formacie JSON
-                  </p>
-                </div>
-              </motion.button>
-            </div>
-          </motion.div>
-
-          {/* Recent Activity */}
-          <motion.div 
-            variants={itemVariants}
-            className={`rounded-xl shadow-md p-6 transition-colors duration-300 ${
-              darkMode ? 'bg-gray-800' : 'bg-white'
-            }`}
-          >
-            <h3 className={`text-lg font-semibold mb-4 transition-colors duration-300 ${
-              darkMode ? 'text-white' : 'text-gray-900'
-            }`}>
-              Ostatnia aktywność
-            </h3>
-            <div className="space-y-4">
-              {recipes.slice(0, 5).map((recipe, index) => (
-                <motion.div
-                  key={recipe.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  className={`flex items-center p-3 rounded-lg transition-colors duration-300 ${
-                    darkMode ? 'bg-gray-700' : 'bg-gray-50'
-                  }`}
-                >
-                  <div className="p-2 bg-green-100 dark:bg-green-900 rounded-full mr-3">
-                    <BookOpen className="h-4 w-4 text-green-600 dark:text-green-400" />
-                  </div>
-                  <div className="flex-1">
-                    <p className={`font-medium transition-colors duration-300 ${
-                      darkMode ? 'text-white' : 'text-gray-900'
-                    }`}>
-                      Nowy przepis: {recipe.title}
-                    </p>
-                    <p className={`text-sm transition-colors duration-300 ${
-                      darkMode ? 'text-gray-400' : 'text-gray-600'
-                    }`}>
-                      Autor: {recipe.authorUsername} • {new Date(recipe.createdAt).toLocaleDateString('pl-PL')}
-                    </p>
-                  </div>
-                  <div className="flex items-center space-x-2 text-sm">
-                    <span className={`flex items-center transition-colors duration-300 ${
-                      darkMode ? 'text-gray-400' : 'text-gray-600'
-                    }`}>
-                      <Heart className="h-3 w-3 mr-1" />
-                      {recipe.likes?.length || 0}
-                    </span>
-                    <span className={`flex items-center transition-colors duration-300 ${
-                      darkMode ? 'text-gray-400' : 'text-gray-600'
-                    }`}>
-                      <Eye className="h-3 w-3 mr-1" />
-                      {recipe.viewCount || 0}
-                    </span>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-        </motion.div>
-      )}
-
-      {/* Users Tab */}
-      {activeTab === 'users' && (
-        <motion.div 
-          variants={itemVariants}
-          className={`rounded-xl shadow-md p-6 transition-colors duration-300 ${
-            darkMode ? 'bg-gray-800' : 'bg-white'
-          }`}
-        >
-          <div className="flex items-center justify-between mb-6">
-            <h2 className={`text-xl font-semibold transition-colors duration-300 ${
-              darkMode ? 'text-white' : 'text-gray-900'
-            }`}>
-              Zarządzanie użytkownikami
-            </h2>
-            <div className="flex items-center space-x-4">
-              <div className="relative">
-                <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 transition-colors duration-300 ${
-                  darkMode ? 'text-gray-400' : 'text-gray-400'
-                }`} />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className={`pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors ${
-                    darkMode 
-                      ? 'border-gray-600 bg-gray-700 text-white placeholder-gray-400' 
-                      : 'border-gray-300 bg-white text-gray-900 placeholder-gray-500'
-                  }`}
-                  placeholder="Wyszukaj użytkowników..."
-                />
-              </div>
-              <motion.button
+                key={tab.id}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={() => exportData('users')}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center py-4 px-1 border-b-2 font-medium text-sm transition-all duration-200 ${
+                  activeTab === tab.id
+                    ? 'border-red-500 text-red-600 dark:text-red-400'
+                    : darkMode
+                      ? 'border-transparent text-gray-400 hover:text-gray-200 hover:border-gray-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
               >
-                <Download className="h-4 w-4 mr-2" />
-                Eksportuj
+                <tab.icon className="h-5 w-5 mr-2" />
+                {tab.label}
+                {tab.id === 'reports' && analytics.pendingReports > 0 && (
+                  <span className="ml-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    {analytics.pendingReports}
+                  </span>
+                )}
               </motion.button>
-            </div>
-          </div>
+            ))}
+          </nav>
+        </div>
+      </motion.div>
 
-          {filteredUsers.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead className={`transition-colors duration-300 ${
-                  darkMode ? 'bg-gray-700' : 'bg-gray-50'
-                }`}>
-                  <tr>
-                    <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider transition-colors duration-300 ${
-                      darkMode ? 'text-gray-300' : 'text-gray-500'
-                    }`}>
-                      Użytkownik
-                    </th>
-                    <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider transition-colors duration-300 ${
-                      darkMode ? 'text-gray-300' : 'text-gray-500'
-                    }`}>
-                      Email
-                    </th>
-                    <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider transition-colors duration-300 ${
-                      darkMode ? 'text-gray-300' : 'text-gray-500'
-                    }`}>
-                      Status
-                    </th>
-                    <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider transition-colors duration-300 ${
-                      darkMode ? 'text-gray-300' : 'text-gray-500'
-                    }`}>
-                      Data rejestracji
-                    </th>
-                    <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider transition-colors duration-300 ${
-                      darkMode ? 'text-gray-300' : 'text-gray-500'
-                    }`}>
-                      Przepisy
-                    </th>
-                    <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider transition-colors duration-300 ${
-                      darkMode ? 'text-gray-300' : 'text-gray-500'
-                    }`}>
-                      Akcje
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className={`divide-y transition-colors duration-300 ${
-                  darkMode ? 'bg-gray-800 divide-gray-700' : 'bg-white divide-gray-200'
-                }`}>
-                  {filteredUsers.map((u, index) => {
-                    const userRecipes = recipes.filter(r => r.authorId === u.id);
-                    return (
-                      <motion.tr 
-                        key={u.id}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: index * 0.05 }}
-                        className={`transition-colors duration-300 ${
-                          darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-50'
-                        }`}
-                      >
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <div className={`h-10 w-10 rounded-full flex items-center justify-center transition-colors duration-300 ${
-                              darkMode ? 'bg-gray-700' : 'bg-gray-200'
-                            }`}>
-                              <Users className={`h-5 w-5 transition-colors duration-300 ${
-                                darkMode ? 'text-gray-400' : 'text-gray-600'
-                              }`} />
-                            </div>
-                            <div className="ml-4">
-                              <div className="flex items-center">
-                                <div className={`text-sm font-medium transition-colors duration-300 ${
-                                  darkMode ? 'text-white' : 'text-gray-900'
-                                }`}>
-                                  {u.displayName || u.username}
-                                </div>
-                                {u.isVerified && (
-                                  <CheckCircle className="h-4 w-4 text-blue-500 ml-1" />
-                                )}
-                              </div>
-                              <div className={`text-sm transition-colors duration-300 ${
-                                darkMode ? 'text-gray-400' : 'text-gray-500'
-                              }`}>
-                                @{u.username}
-                              </div>
-                              {u.bio && (
-                                <div className={`text-sm truncate max-w-xs transition-colors duration-300 ${
-                                  darkMode ? 'text-gray-500' : 'text-gray-500'
-                                }`}>
-                                  {u.bio}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </td>
-                        <td className={`px-6 py-4 whitespace-nowrap text-sm transition-colors duration-300 ${
-                          darkMode ? 'text-gray-300' : 'text-gray-900'
-                        }`}>
-                          {u.email}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center space-x-2">
-                            {u.isVerified ? (
-                              <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
-                                Zweryfikowany
-                              </span>
-                            ) : (
-                              <span className={`px-2 py-1 text-xs font-medium rounded-full transition-colors duration-300 ${
-                                darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-800'
-                              }`}>
-                                Niezweryfikowany
-                              </span>
-                            )}
-                            {u.role === 'admin' && (
-                              <span className="px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full">
-                                Admin
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                        <td className={`px-6 py-4 whitespace-nowrap text-sm transition-colors duration-300 ${
-                          darkMode ? 'text-gray-400' : 'text-gray-500'
-                        }`}>
-                          {new Date(u.createdAt).toLocaleDateString('pl-PL')}
-                        </td>
-                        <td className={`px-6 py-4 whitespace-nowrap text-sm transition-colors duration-300 ${
-                          darkMode ? 'text-gray-300' : 'text-gray-900'
-                        }`}>
-                          {userRecipes.length}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <div className="flex space-x-2">
-                            <motion.button
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
-                              onClick={() => setShowRoleModal(u.id)}
-                              className="text-blue-600 hover:text-blue-900 flex items-center"
-                            >
-                              <UserCheck className="h-4 w-4 mr-1" />
-                              Zarządzaj
-                            </motion.button>
-                            <motion.button
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
-                              onClick={() => confirmDelete(u.id, 'user')}
-                              className="text-red-600 hover:text-red-900 flex items-center"
-                            >
-                              <Trash2 className="h-4 w-4 mr-1" />
-                              Usuń
-                            </motion.button>
-                          </div>
-                        </td>
-                      </motion.tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <Users className={`h-12 w-12 mx-auto mb-4 transition-colors duration-300 ${
-                darkMode ? 'text-gray-400' : 'text-gray-400'
-              }`} />
-              <p className={`transition-colors duration-300 ${
-                darkMode ? 'text-gray-400' : 'text-gray-500'
-              }`}>
-                Brak użytkowników do wyświetlenia
-              </p>
-            </div>
-          )}
-        </motion.div>
-      )}
-
-      {/* Recipes Tab */}
-      {activeTab === 'recipes' && (
-        <motion.div 
-          variants={itemVariants}
-          className={`rounded-xl shadow-md p-6 transition-colors duration-300 ${
-            darkMode ? 'bg-gray-800' : 'bg-white'
-          }`}
+      {/* Tab Content */}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={activeTab}
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -20 }}
+          transition={{ duration: 0.3 }}
         >
-          <div className="flex items-center justify-between mb-6">
-            <h2 className={`text-xl font-semibold transition-colors duration-300 ${
-              darkMode ? 'text-white' : 'text-gray-900'
-            }`}>
-              Zarządzanie przepisami
-            </h2>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => exportData('recipes')}
-              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center"
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Eksportuj
-            </motion.button>
-          </div>
-          
-          {recipes.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {recipes.map((recipe, index) => (
-                <motion.div 
-                  key={recipe.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                  whileHover={{ scale: 1.02 }}
-                  className={`border rounded-lg p-4 transition-all duration-300 ${
-                    darkMode ? 'border-gray-600 bg-gray-700' : 'border-gray-200 bg-white'
-                  }`}
-                >
-                  {recipe.image && (
-                    <img 
-                      src={recipe.image} 
-                      alt={recipe.title}
-                      className="w-full h-32 object-cover rounded-lg mb-3"
-                    />
-                  )}
-                  <h3 className={`font-semibold mb-2 truncate transition-colors duration-300 ${
-                    darkMode ? 'text-white' : 'text-gray-900'
-                  }`}>
-                    {recipe.title}
-                  </h3>
-                  <p className={`text-sm mb-2 transition-colors duration-300 ${
-                    darkMode ? 'text-gray-400' : 'text-gray-600'
-                  }`}>
-                    Autor: {recipe.authorUsername}
-                  </p>
-                  <div className="flex items-center justify-between text-sm mb-3">
-                    <span className={`flex items-center transition-colors duration-300 ${
-                      darkMode ? 'text-gray-400' : 'text-gray-600'
-                    }`}>
-                      <Heart className="h-3 w-3 mr-1" />
-                      {recipe.likes?.length || 0}
-                    </span>
-                    <span className={`flex items-center transition-colors duration-300 ${
-                      darkMode ? 'text-gray-400' : 'text-gray-600'
-                    }`}>
-                      <Eye className="h-3 w-3 mr-1" />
-                      {recipe.viewCount || 0}
-                    </span>
-                    <span className={`flex items-center transition-colors duration-300 ${
-                      darkMode ? 'text-gray-400' : 'text-gray-600'
-                    }`}>
-                      <MessageCircle className="h-3 w-3 mr-1" />
-                      {recipe.comments?.length || 0}
-                    </span>
-                  </div>
-                  <p className={`text-sm mb-4 transition-colors duration-300 ${
-                    darkMode ? 'text-gray-500' : 'text-gray-500'
-                  }`}>
-                    {new Date(recipe.createdAt).toLocaleDateString('pl-PL')}
-                  </p>
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => confirmDelete(recipe.id, 'recipe')}
-                    className="w-full bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center"
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Usuń przepis
-                  </motion.button>
-                </motion.div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <BookOpen className={`h-12 w-12 mx-auto mb-4 transition-colors duration-300 ${
-                darkMode ? 'text-gray-400' : 'text-gray-400'
-              }`} />
-              <p className={`transition-colors duration-300 ${
-                darkMode ? 'text-gray-400' : 'text-gray-500'
-              }`}>
-                Brak przepisów w systemie
-              </p>
-            </div>
-          )}
-        </motion.div>
-      )}
-
-      {/* Analytics Tab */}
-      {activeTab === 'analytics' && (
-        <motion.div variants={containerVariants} className="space-y-8">
-          {/* Date Range Filter */}
-          <motion.div 
-            variants={itemVariants}
-            className={`rounded-xl shadow-md p-6 transition-colors duration-300 ${
-              darkMode ? 'bg-gray-800' : 'bg-white'
-            }`}
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h3 className={`text-lg font-semibold transition-colors duration-300 ${
-                darkMode ? 'text-white' : 'text-gray-900'
-              }`}>
-                Analityka i statystyki
-              </h3>
-              <div className="flex items-center space-x-2">
-                <Filter className={`h-4 w-4 transition-colors duration-300 ${
-                  darkMode ? 'text-gray-400' : 'text-gray-600'
-                }`} />
-                <select
-                  value={dateRange}
-                  onChange={(e) => setDateRange(e.target.value as any)}
-                  className={`px-3 py-1 border rounded-lg text-sm transition-colors ${
-                    darkMode 
-                      ? 'border-gray-600 bg-gray-700 text-white' 
-                      : 'border-gray-300 bg-white text-gray-900'
-                  }`}
-                >
-                  <option value="7d">Ostatnie 7 dni</option>
-                  <option value="30d">Ostatnie 30 dni</option>
-                  <option value="90d">Ostatnie 90 dni</option>
-                  <option value="all">Cały czas</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {[
-                {
-                  label: 'Średnia ocena',
-                  value: '4.8',
-                  icon: TrendingUp,
-                  color: 'yellow'
-                },
-                {
-                  label: 'Aktywni użytkownicy',
-                  value: activeUsers,
-                  icon: Activity,
-                  color: 'green'
-                },
-                {
-                  label: 'Zweryfikowani',
-                  value: `${Math.round((verifiedUsers / allUsers.length) * 100)}%`,
-                  icon: CheckCircle,
-                  color: 'blue'
-                },
-                {
-                  label: 'Współczynnik zaangażowania',
-                  value: `${Math.round((totalLikes / totalViews) * 100)}%`,
-                  icon: Heart,
-                  color: 'red'
-                }
-              ].map((metric, index) => (
-                <motion.div
-                  key={index}
-                  variants={cardVariants}
-                  className={`p-4 rounded-lg border transition-colors duration-300 ${
-                    darkMode ? 'border-gray-600 bg-gray-700' : 'border-gray-200 bg-gray-50'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className={`text-2xl font-bold transition-colors duration-300 ${
-                        darkMode ? 'text-white' : 'text-gray-900'
-                      }`}>
-                        {metric.value}
-                      </p>
-                      <p className={`text-sm transition-colors duration-300 ${
-                        darkMode ? 'text-gray-400' : 'text-gray-600'
-                      }`}>
-                        {metric.label}
-                      </p>
-                    </div>
-                    <metric.icon className={`h-8 w-8 text-${metric.color}-500`} />
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-
-          {/* Top Recipes */}
-          <motion.div 
-            variants={itemVariants}
-            className={`rounded-xl shadow-md p-6 transition-colors duration-300 ${
-              darkMode ? 'bg-gray-800' : 'bg-white'
-            }`}
-          >
-            <h3 className={`text-lg font-semibold mb-4 transition-colors duration-300 ${
-              darkMode ? 'text-white' : 'text-gray-900'
-            }`}>
-              Najpopularniejsze przepisy
-            </h3>
-            <div className="space-y-4">
-              {recipes
-                .sort((a, b) => (b.likes?.length || 0) - (a.likes?.length || 0))
-                .slice(0, 5)
-                .map((recipe, index) => (
+          {/* Overview Tab */}
+          {activeTab === 'overview' && (
+            <div className="space-y-8">
+              {/* Quick Stats */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {[
+                  {
+                    title: 'Użytkownicy',
+                    value: analytics.totalUsers,
+                    change: `+${analytics.recentUsers} w tym miesiącu`,
+                    icon: Users,
+                    color: 'blue'
+                  },
+                  {
+                    title: 'Przepisy',
+                    value: analytics.totalRecipes,
+                    change: `+${analytics.recentRecipes} w tym miesiącu`,
+                    icon: BookOpen,
+                    color: 'green'
+                  },
+                  {
+                    title: 'Zgłoszenia',
+                    value: analytics.totalReports,
+                    change: `${analytics.pendingReports} oczekujących`,
+                    icon: AlertTriangle,
+                    color: 'red'
+                  },
+                  {
+                    title: 'Wyświetlenia',
+                    value: analytics.totalViews,
+                    change: `${analytics.totalLikes} polubień`,
+                    icon: Eye,
+                    color: 'purple'
+                  }
+                ].map((stat, index) => (
                   <motion.div
-                    key={recipe.id}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
+                    key={stat.title}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.1 }}
-                    className={`flex items-center justify-between p-3 rounded-lg transition-colors duration-300 ${
-                      darkMode ? 'bg-gray-700' : 'bg-gray-50'
+                    whileHover={{ scale: 1.05 }}
+                    className={`rounded-xl p-6 shadow-md transition-all duration-300 ${
+                      darkMode ? 'bg-gray-800' : 'bg-white'
                     }`}
                   >
                     <div className="flex items-center">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold mr-3 ${
-                        index === 0 ? 'bg-yellow-500 text-white' :
-                        index === 1 ? 'bg-gray-400 text-white' :
-                        index === 2 ? 'bg-orange-500 text-white' :
-                        darkMode ? 'bg-gray-600 text-gray-300' : 'bg-gray-200 text-gray-600'
-                      }`}>
-                        {index + 1}
+                      <div className={`p-3 bg-${stat.color}-100 dark:bg-${stat.color}-900 rounded-full`}>
+                        <stat.icon className={`h-6 w-6 text-${stat.color}-600 dark:text-${stat.color}-400`} />
                       </div>
-                      <div>
-                        <p className={`font-medium transition-colors duration-300 ${
+                      <div className="ml-4">
+                        <p className={`text-2xl font-bold transition-colors duration-300 ${
                           darkMode ? 'text-white' : 'text-gray-900'
                         }`}>
-                          {recipe.title}
+                          {stat.value.toLocaleString()}
                         </p>
                         <p className={`text-sm transition-colors duration-300 ${
                           darkMode ? 'text-gray-400' : 'text-gray-600'
                         }`}>
-                          {recipe.authorUsername}
+                          {stat.title}
+                        </p>
+                        <p className={`text-xs mt-1 transition-colors duration-300 ${
+                          darkMode ? 'text-gray-500' : 'text-gray-500'
+                        }`}>
+                          {stat.change}
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-4 text-sm">
-                      <span className={`flex items-center transition-colors duration-300 ${
-                        darkMode ? 'text-gray-400' : 'text-gray-600'
-                      }`}>
-                        <Heart className="h-3 w-3 mr-1" />
-                        {recipe.likes?.length || 0}
-                      </span>
-                      <span className={`flex items-center transition-colors duration-300 ${
-                        darkMode ? 'text-gray-400' : 'text-gray-600'
-                      }`}>
-                        <Eye className="h-3 w-3 mr-1" />
-                        {recipe.viewCount || 0}
-                      </span>
-                    </div>
                   </motion.div>
                 ))}
-            </div>
-          </motion.div>
-        </motion.div>
-      )}
+              </div>
 
-      {/* Reports Tab */}
-      {activeTab === 'reports' && (
-        <motion.div 
-          variants={itemVariants}
-          className={`rounded-xl shadow-md p-6 transition-colors duration-300 ${
-            darkMode ? 'bg-gray-800' : 'bg-white'
-          }`}
-        >
-          <h2 className={`text-xl font-semibold mb-6 transition-colors duration-300 ${
-            darkMode ? 'text-white' : 'text-gray-900'
-          }`}>
-            Zgłoszenia i moderacja
-          </h2>
-          
-          {reports.length > 0 ? (
-            <div className="space-y-4">
-              {reports.map((report, index) => (
-                <motion.div
-                  key={report.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  className={`p-4 border rounded-lg transition-colors duration-300 ${
-                    darkMode ? 'border-gray-600 bg-gray-700' : 'border-gray-200 bg-gray-50'
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center">
-                      <AlertTriangle className="h-5 w-5 text-red-500 mr-2" />
-                      <span className={`font-medium transition-colors duration-300 ${
+              {/* Charts and Analytics */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* User Roles Distribution */}
+                <div className={`rounded-xl p-6 shadow-md transition-colors duration-300 ${
+                  darkMode ? 'bg-gray-800' : 'bg-white'
+                }`}>
+                  <h3 className={`text-lg font-semibold mb-4 transition-colors duration-300 ${
+                    darkMode ? 'text-white' : 'text-gray-900'
+                  }`}>
+                    Podział użytkowników
+                  </h3>
+                  <div className="space-y-3">
+                    {Object.entries(analytics.usersByRole).map(([role, count]) => (
+                      <div key={role} className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          {role === 'admin' ? (
+                            <Crown className="h-4 w-4 text-red-500 mr-2" />
+                          ) : (
+                            <Users className="h-4 w-4 text-blue-500 mr-2" />
+                          )}
+                          <span className={`transition-colors duration-300 ${
+                            darkMode ? 'text-gray-300' : 'text-gray-700'
+                          }`}>
+                            {role === 'admin' ? 'Administratorzy' : 'Użytkownicy'}
+                          </span>
+                        </div>
+                        <span className={`font-semibold transition-colors duration-300 ${
+                          darkMode ? 'text-white' : 'text-gray-900'
+                        }`}>
+                          {count}
+                        </span>
+                      </div>
+                    ))}
+                    <div className="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-gray-700">
+                      <div className="flex items-center">
+                        <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                        <span className={`transition-colors duration-300 ${
+                          darkMode ? 'text-gray-300' : 'text-gray-700'
+                        }`}>
+                          Zweryfikowani
+                        </span>
+                      </div>
+                      <span className={`font-semibold transition-colors duration-300 ${
                         darkMode ? 'text-white' : 'text-gray-900'
                       }`}>
-                        Zgłoszenie {report.targetType}
+                        {analytics.verifiedUsers}
                       </span>
                     </div>
-                    <span className={`px-2 py-1 text-xs rounded-full ${
-                      report.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                      report.status === 'reviewed' ? 'bg-blue-100 text-blue-800' :
-                      'bg-green-100 text-green-800'
-                    }`}>
-                      {report.status}
-                    </span>
                   </div>
-                  <p className={`text-sm mb-2 transition-colors duration-300 ${
-                    darkMode ? 'text-gray-300' : 'text-gray-700'
+                </div>
+
+                {/* Recipe Categories */}
+                <div className={`rounded-xl p-6 shadow-md transition-colors duration-300 ${
+                  darkMode ? 'bg-gray-800' : 'bg-white'
+                }`}>
+                  <h3 className={`text-lg font-semibold mb-4 transition-colors duration-300 ${
+                    darkMode ? 'text-white' : 'text-gray-900'
                   }`}>
-                    Powód: {report.reason}
-                  </p>
-                  {report.description && (
-                    <p className={`text-sm mb-2 transition-colors duration-300 ${
+                    Kategorie przepisów
+                  </h3>
+                  <div className="space-y-3">
+                    {Object.entries(analytics.recipesByCategory)
+                      .sort(([,a], [,b]) => b - a)
+                      .slice(0, 5)
+                      .map(([category, count]) => (
+                      <div key={category} className="flex items-center justify-between">
+                        <span className={`transition-colors duration-300 ${
+                          darkMode ? 'text-gray-300' : 'text-gray-700'
+                        }`}>
+                          {category}
+                        </span>
+                        <div className="flex items-center">
+                          <div className={`w-20 h-2 rounded-full mr-3 transition-colors duration-300 ${
+                            darkMode ? 'bg-gray-700' : 'bg-gray-200'
+                          }`}>
+                            <div 
+                              className="h-2 bg-blue-500 rounded-full"
+                              style={{ 
+                                width: `${(count / Math.max(...Object.values(analytics.recipesByCategory))) * 100}%` 
+                              }}
+                            />
+                          </div>
+                          <span className={`font-semibold transition-colors duration-300 ${
+                            darkMode ? 'text-white' : 'text-gray-900'
+                          }`}>
+                            {count}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Top Users */}
+              <div className={`rounded-xl p-6 shadow-md transition-colors duration-300 ${
+                darkMode ? 'bg-gray-800' : 'bg-white'
+              }`}>
+                <h3 className={`text-lg font-semibold mb-4 transition-colors duration-300 ${
+                  darkMode ? 'text-white' : 'text-gray-900'
+                }`}>
+                  Najbardziej aktywni użytkownicy
+                </h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className={`border-b transition-colors duration-300 ${
+                        darkMode ? 'border-gray-700' : 'border-gray-200'
+                      }`}>
+                        <th className={`text-left py-2 transition-colors duration-300 ${
+                          darkMode ? 'text-gray-300' : 'text-gray-700'
+                        }`}>
+                          Użytkownik
+                        </th>
+                        <th className={`text-left py-2 transition-colors duration-300 ${
+                          darkMode ? 'text-gray-300' : 'text-gray-700'
+                        }`}>
+                          Przepisy
+                        </th>
+                        <th className={`text-left py-2 transition-colors duration-300 ${
+                          darkMode ? 'text-gray-300' : 'text-gray-700'
+                        }`}>
+                          Polubienia
+                        </th>
+                        <th className={`text-left py-2 transition-colors duration-300 ${
+                          darkMode ? 'text-gray-300' : 'text-gray-700'
+                        }`}>
+                          Status
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {analytics.topUsers.slice(0, 5).map((user, index) => (
+                        <tr key={user.id} className={`border-b transition-colors duration-300 ${
+                          darkMode ? 'border-gray-700' : 'border-gray-200'
+                        }`}>
+                          <td className="py-3">
+                            <div className="flex items-center">
+                              <div className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 transition-colors duration-300 ${
+                                user.role === 'admin' 
+                                  ? 'bg-red-100 dark:bg-red-900' 
+                                  : 'bg-blue-100 dark:bg-blue-900'
+                              }`}>
+                                {user.role === 'admin' ? (
+                                  <Crown className="h-4 w-4 text-red-600 dark:text-red-400" />
+                                ) : (
+                                  <Users className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                                )}
+                              </div>
+                              <div>
+                                <div className="flex items-center">
+                                  <span className={`font-medium transition-colors duration-300 ${
+                                    darkMode ? 'text-white' : 'text-gray-900'
+                                  }`}>
+                                    {user.username}
+                                  </span>
+                                  {user.isVerified && (
+                                    <CheckCircle className="h-4 w-4 text-blue-500 ml-1" />
+                                  )}
+                                </div>
+                                <span className={`text-sm transition-colors duration-300 ${
+                                  darkMode ? 'text-gray-400' : 'text-gray-600'
+                                }`}>
+                                  {user.email}
+                                </span>
+                              </div>
+                            </div>
+                          </td>
+                          <td className={`py-3 font-semibold transition-colors duration-300 ${
+                            darkMode ? 'text-white' : 'text-gray-900'
+                          }`}>
+                            {user.recipeCount}
+                          </td>
+                          <td className={`py-3 font-semibold transition-colors duration-300 ${
+                            darkMode ? 'text-white' : 'text-gray-900'
+                          }`}>
+                            {user.totalLikes}
+                          </td>
+                          <td className="py-3">
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              user.role === 'admin'
+                                ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                                : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                            }`}>
+                              {user.role === 'admin' ? 'Admin' : 'Użytkownik'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Users Tab */}
+          {activeTab === 'users' && (
+            <div className="space-y-6">
+              {/* User Management Controls */}
+              <div className={`rounded-xl p-6 shadow-md transition-colors duration-300 ${
+                darkMode ? 'bg-gray-800' : 'bg-white'
+              }`}>
+                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
+                  <div className="flex items-center space-x-4">
+                    <div className="relative">
+                      <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 transition-colors duration-300 ${
+                        darkMode ? 'text-gray-400' : 'text-gray-400'
+                      }`} />
+                      <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className={`pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors ${
+                          darkMode 
+                            ? 'border-gray-600 bg-gray-700 text-white placeholder-gray-400' 
+                            : 'border-gray-300 bg-white text-gray-900 placeholder-gray-500'
+                        }`}
+                        placeholder="Wyszukaj użytkowników..."
+                      />
+                    </div>
+                    
+                    <select
+                      value={userFilter}
+                      onChange={(e) => setUserFilter(e.target.value as any)}
+                      className={`px-3 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors ${
+                        darkMode 
+                          ? 'border-gray-600 bg-gray-700 text-white' 
+                          : 'border-gray-300 bg-white text-gray-900'
+                      }`}
+                    >
+                      <option value="all">Wszyscy użytkownicy</option>
+                      <option value="admin">Administratorzy</option>
+                      <option value="user">Zwykli użytkownicy</option>
+                      <option value="verified">Zweryfikowani</option>
+                    </select>
+
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                        className={`p-2 rounded-lg transition-colors ${
+                          darkMode 
+                            ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                      >
+                        {sortOrder === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                      </button>
+                      <select
+                        value={sortBy}
+                        onChange={(e) => setSortBy(e.target.value as any)}
+                        className={`px-3 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors ${
+                          darkMode 
+                            ? 'border-gray-600 bg-gray-700 text-white' 
+                            : 'border-gray-300 bg-white text-gray-900'
+                        }`}
+                      >
+                        <option value="name">Sortuj po nazwie</option>
+                        <option value="date">Sortuj po dacie</option>
+                        <option value="recipes">Sortuj po przepisach</option>
+                        <option value="role">Sortuj po roli</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    {selectedUsers.length > 0 && (
+                      <button
+                        onClick={handleBulkDelete}
+                        className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors flex items-center"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Usuń zaznaczonych ({selectedUsers.length})
+                      </button>
+                    )}
+                    <button
+                      onClick={() => exportData('users')}
+                      className={`px-4 py-2 rounded-lg transition-colors flex items-center ${
+                        darkMode 
+                          ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Eksportuj
+                    </button>
+                  </div>
+                </div>
+
+                {/* Users Table */}
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className={`border-b transition-colors duration-300 ${
+                        darkMode ? 'border-gray-700' : 'border-gray-200'
+                      }`}>
+                        <th className="text-left py-3 px-2">
+                          <input
+                            type="checkbox"
+                            checked={selectedUsers.length === filteredUsers.length && filteredUsers.length > 0}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedUsers(filteredUsers.map(u => u.id));
+                              } else {
+                                setSelectedUsers([]);
+                              }
+                            }}
+                            className="rounded"
+                          />
+                        </th>
+                        <th className={`text-left py-3 px-2 transition-colors duration-300 ${
+                          darkMode ? 'text-gray-300' : 'text-gray-700'
+                        }`}>
+                          Użytkownik
+                        </th>
+                        <th className={`text-left py-3 px-2 transition-colors duration-300 ${
+                          darkMode ? 'text-gray-300' : 'text-gray-700'
+                        }`}>
+                          Email
+                        </th>
+                        <th className={`text-left py-3 px-2 transition-colors duration-300 ${
+                          darkMode ? 'text-gray-300' : 'text-gray-700'
+                        }`}>
+                          Rola
+                        </th>
+                        <th className={`text-left py-3 px-2 transition-colors duration-300 ${
+                          darkMode ? 'text-gray-300' : 'text-gray-700'
+                        }`}>
+                          Przepisy
+                        </th>
+                        <th className={`text-left py-3 px-2 transition-colors duration-300 ${
+                          darkMode ? 'text-gray-300' : 'text-gray-700'
+                        }`}>
+                          Data dołączenia
+                        </th>
+                        <th className={`text-left py-3 px-2 transition-colors duration-300 ${
+                          darkMode ? 'text-gray-300' : 'text-gray-700'
+                        }`}>
+                          Akcje
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredUsers.map((user) => {
+                        const userRecipeCount = recipes.filter(r => r.authorId === user.id).length;
+                        return (
+                          <motion.tr 
+                            key={user.id}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className={`border-b transition-colors duration-300 hover:bg-gray-50 dark:hover:bg-gray-700 ${
+                              darkMode ? 'border-gray-700' : 'border-gray-200'
+                            }`}
+                          >
+                            <td className="py-3 px-2">
+                              <input
+                                type="checkbox"
+                                checked={selectedUsers.includes(user.id)}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setSelectedUsers([...selectedUsers, user.id]);
+                                  } else {
+                                    setSelectedUsers(selectedUsers.filter(id => id !== user.id));
+                                  }
+                                }}
+                                className="rounded"
+                              />
+                            </td>
+                            <td className="py-3 px-2">
+                              <div className="flex items-center">
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 transition-colors duration-300 ${
+                                  user.role === 'admin' 
+                                    ? 'bg-red-100 dark:bg-red-900' 
+                                    : 'bg-blue-100 dark:bg-blue-900'
+                                }`}>
+                                  {user.role === 'admin' ? (
+                                    <Crown className="h-4 w-4 text-red-600 dark:text-red-400" />
+                                  ) : (
+                                    <Users className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                                  )}
+                                </div>
+                                <div>
+                                  <div className="flex items-center">
+                                    <span className={`font-medium transition-colors duration-300 ${
+                                      darkMode ? 'text-white' : 'text-gray-900'
+                                    }`}>
+                                      {user.displayName || user.username}
+                                    </span>
+                                    {user.isVerified && (
+                                      <CheckCircle className="h-4 w-4 text-blue-500 ml-1" />
+                                    )}
+                                  </div>
+                                  <span className={`text-sm transition-colors duration-300 ${
+                                    darkMode ? 'text-gray-400' : 'text-gray-600'
+                                  }`}>
+                                    @{user.username}
+                                  </span>
+                                </div>
+                              </div>
+                            </td>
+                            <td className={`py-3 px-2 transition-colors duration-300 ${
+                              darkMode ? 'text-gray-300' : 'text-gray-700'
+                            }`}>
+                              {user.email}
+                            </td>
+                            <td className="py-3 px-2">
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                user.role === 'admin'
+                                  ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                                  : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                              }`}>
+                                {user.role === 'admin' ? 'Admin' : 'Użytkownik'}
+                              </span>
+                            </td>
+                            <td className={`py-3 px-2 font-semibold transition-colors duration-300 ${
+                              darkMode ? 'text-white' : 'text-gray-900'
+                            }`}>
+                              {userRecipeCount}
+                            </td>
+                            <td className={`py-3 px-2 transition-colors duration-300 ${
+                              darkMode ? 'text-gray-300' : 'text-gray-700'
+                            }`}>
+                              {new Date(user.createdAt).toLocaleDateString('pl-PL')}
+                            </td>
+                            <td className="py-3 px-2">
+                              <div className="flex items-center space-x-2">
+                                <button
+                                  onClick={() => handleToggleVerification(user.id)}
+                                  className={`p-1 rounded transition-colors ${
+                                    user.isVerified
+                                      ? 'text-green-600 hover:bg-green-100 dark:hover:bg-green-900'
+                                      : 'text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                                  }`}
+                                  title={user.isVerified ? 'Usuń weryfikację' : 'Zweryfikuj użytkownika'}
+                                >
+                                  {user.isVerified ? <UserCheck className="h-4 w-4" /> : <UserX className="h-4 w-4" />}
+                                </button>
+                                <button
+                                  onClick={() => handleToggleUserRole(user.id)}
+                                  className={`p-1 rounded transition-colors ${
+                                    user.role === 'admin'
+                                      ? 'text-red-600 hover:bg-red-100 dark:hover:bg-red-900'
+                                      : 'text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900'
+                                  }`}
+                                  title={user.role === 'admin' ? 'Usuń uprawnienia admina' : 'Nadaj uprawnienia admina'}
+                                >
+                                  {user.role === 'admin' ? <Crown className="h-4 w-4" /> : <Star className="h-4 w-4" />}
+                                </button>
+                                {user.role !== 'admin' && (
+                                  <button
+                                    onClick={() => handleDeleteUser(user.id)}
+                                    className="p-1 rounded text-red-600 hover:bg-red-100 dark:hover:bg-red-900 transition-colors"
+                                    title="Usuń użytkownika"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </motion.tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                {filteredUsers.length === 0 && (
+                  <div className="text-center py-8">
+                    <Users className={`h-12 w-12 mx-auto mb-4 transition-colors duration-300 ${
+                      darkMode ? 'text-gray-400' : 'text-gray-400'
+                    }`} />
+                    <p className={`transition-colors duration-300 ${
                       darkMode ? 'text-gray-400' : 'text-gray-600'
                     }`}>
-                      Opis: {report.description}
+                      Nie znaleziono użytkowników spełniających kryteria
                     </p>
-                  )}
-                  <p className={`text-xs transition-colors duration-300 ${
-                    darkMode ? 'text-gray-500' : 'text-gray-500'
-                  }`}>
-                    Zgłoszono: {new Date(report.createdAt).toLocaleDateString('pl-PL')}
-                  </p>
-                </motion.div>
-              ))}
+                  </div>
+                )}
+              </div>
             </div>
-          ) : (
-            <div className="text-center py-8">
-              <AlertTriangle className={`h-12 w-12 mx-auto mb-4 transition-colors duration-300 ${
-                darkMode ? 'text-gray-400' : 'text-gray-400'
-              }`} />
-              <p className={`transition-colors duration-300 ${
-                darkMode ? 'text-gray-400' : 'text-gray-500'
+          )}
+
+          {/* Recipes Tab */}
+          {activeTab === 'recipes' && (
+            <div className="space-y-6">
+              <div className={`rounded-xl p-6 shadow-md transition-colors duration-300 ${
+                darkMode ? 'bg-gray-800' : 'bg-white'
               }`}>
-                Brak zgłoszeń do przeglądu
-              </p>
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className={`text-lg font-semibold transition-colors duration-300 ${
+                    darkMode ? 'text-white' : 'text-gray-900'
+                  }`}>
+                    Zarządzanie przepisami ({recipes.length})
+                  </h3>
+                  <button
+                    onClick={() => exportData('recipes')}
+                    className={`px-4 py-2 rounded-lg transition-colors flex items-center ${
+                      darkMode 
+                        ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Eksportuj przepisy
+                  </button>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className={`border-b transition-colors duration-300 ${
+                        darkMode ? 'border-gray-700' : 'border-gray-200'
+                      }`}>
+                        <th className={`text-left py-3 px-2 transition-colors duration-300 ${
+                          darkMode ? 'text-gray-300' : 'text-gray-700'
+                        }`}>
+                          Przepis
+                        </th>
+                        <th className={`text-left py-3 px-2 transition-colors duration-300 ${
+                          darkMode ? 'text-gray-300' : 'text-gray-700'
+                        }`}>
+                          Autor
+                        </th>
+                        <th className={`text-left py-3 px-2 transition-colors duration-300 ${
+                          darkMode ? 'text-gray-300' : 'text-gray-700'
+                        }`}>
+                          Kategoria
+                        </th>
+                        <th className={`text-left py-3 px-2 transition-colors duration-300 ${
+                          darkMode ? 'text-gray-300' : 'text-gray-700'
+                        }`}>
+                          Statystyki
+                        </th>
+                        <th className={`text-left py-3 px-2 transition-colors duration-300 ${
+                          darkMode ? 'text-gray-300' : 'text-gray-700'
+                        }`}>
+                          Data
+                        </th>
+                        <th className={`text-left py-3 px-2 transition-colors duration-300 ${
+                          darkMode ? 'text-gray-300' : 'text-gray-700'
+                        }`}>
+                          Akcje
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {recipes.slice(0, 20).map((recipe) => {
+                        const author = allUsers.find(u => u.id === recipe.authorId);
+                        return (
+                          <motion.tr 
+                            key={recipe.id}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className={`border-b transition-colors duration-300 hover:bg-gray-50 dark:hover:bg-gray-700 ${
+                              darkMode ? 'border-gray-700' : 'border-gray-200'
+                            }`}
+                          >
+                            <td className="py-3 px-2">
+                              <div className="flex items-center">
+                                {recipe.image && (
+                                  <img 
+                                    src={recipe.image} 
+                                    alt={recipe.title}
+                                    className="w-10 h-10 rounded-lg object-cover mr-3"
+                                  />
+                                )}
+                                <div>
+                                  <span className={`font-medium transition-colors duration-300 ${
+                                    darkMode ? 'text-white' : 'text-gray-900'
+                                  }`}>
+                                    {recipe.title}
+                                  </span>
+                                  {recipe.difficulty && (
+                                    <div className="flex items-center mt-1">
+                                      <span className={`text-xs px-2 py-1 rounded-full ${
+                                        recipe.difficulty === 'łatwy' 
+                                          ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                                          : recipe.difficulty === 'średni'
+                                          ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                                          : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                                      }`}>
+                                        {recipe.difficulty}
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </td>
+                            <td className="py-3 px-2">
+                              <div className="flex items-center">
+                                <span className={`transition-colors duration-300 ${
+                                  darkMode ? 'text-gray-300' : 'text-gray-700'
+                                }`}>
+                                  {recipe.authorUsername}
+                                </span>
+                                {author?.isVerified && (
+                                  <CheckCircle className="h-4 w-4 text-blue-500 ml-1" />
+                                )}
+                              </div>
+                            </td>
+                            <td className={`py-3 px-2 transition-colors duration-300 ${
+                              darkMode ? 'text-gray-300' : 'text-gray-700'
+                            }`}>
+                              {recipe.category || 'Brak'}
+                            </td>
+                            <td className="py-3 px-2">
+                              <div className="flex items-center space-x-3 text-sm">
+                                <div className="flex items-center">
+                                  <Eye className="h-3 w-3 mr-1 text-blue-500" />
+                                  <span className={`transition-colors duration-300 ${
+                                    darkMode ? 'text-gray-300' : 'text-gray-700'
+                                  }`}>
+                                    {recipe.viewCount || 0}
+                                  </span>
+                                </div>
+                                <div className="flex items-center">
+                                  <Heart className="h-3 w-3 mr-1 text-red-500" />
+                                  <span className={`transition-colors duration-300 ${
+                                    darkMode ? 'text-gray-300' : 'text-gray-700'
+                                  }`}>
+                                    {recipe.likes?.length || 0}
+                                  </span>
+                                </div>
+                                <div className="flex items-center">
+                                  <MessageCircle className="h-3 w-3 mr-1 text-green-500" />
+                                  <span className={`transition-colors duration-300 ${
+                                    darkMode ? 'text-gray-300' : 'text-gray-700'
+                                  }`}>
+                                    {recipe.comments?.length || 0}
+                                  </span>
+                                </div>
+                              </div>
+                            </td>
+                            <td className={`py-3 px-2 transition-colors duration-300 ${
+                              darkMode ? 'text-gray-300' : 'text-gray-700'
+                            }`}>
+                              {new Date(recipe.createdAt).toLocaleDateString('pl-PL')}
+                            </td>
+                            <td className="py-3 px-2">
+                              <div className="flex items-center space-x-2">
+                                <button
+                                  onClick={() => window.open(`/recipe/${recipe.id}`, '_blank')}
+                                  className="p-1 rounded text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900 transition-colors"
+                                  title="Zobacz przepis"
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    if (window.confirm(`Czy na pewno chcesz usunąć przepis "${recipe.title}"?`)) {
+                                      deleteRecipe(recipe.id);
+                                    }
+                                  }}
+                                  className="p-1 rounded text-red-600 hover:bg-red-100 dark:hover:bg-red-900 transition-colors"
+                                  title="Usuń przepis"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
+                            </td>
+                          </motion.tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Analytics Tab */}
+          {activeTab === 'analytics' && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Platform Statistics */}
+                <div className={`rounded-xl p-6 shadow-md transition-colors duration-300 ${
+                  darkMode ? 'bg-gray-800' : 'bg-white'
+                }`}>
+                  <h3 className={`text-lg font-semibold mb-4 transition-colors duration-300 ${
+                    darkMode ? 'text-white' : 'text-gray-900'
+                  }`}>
+                    Statystyki platformy
+                  </h3>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className={`transition-colors duration-300 ${
+                        darkMode ? 'text-gray-300' : 'text-gray-700'
+                      }`}>
+                        Średnia przepisów na użytkownika
+                      </span>
+                      <span className={`font-bold transition-colors duration-300 ${
+                        darkMode ? 'text-white' : 'text-gray-900'
+                      }`}>
+                        {analytics.averageRecipesPerUser}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className={`transition-colors duration-300 ${
+                        darkMode ? 'text-gray-300' : 'text-gray-700'
+                      }`}>
+                        Łączne polubienia
+                      </span>
+                      <span className={`font-bold transition-colors duration-300 ${
+                        darkMode ? 'text-white' : 'text-gray-900'
+                      }`}>
+                        {analytics.totalLikes.toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className={`transition-colors duration-300 ${
+                        darkMode ? 'text-gray-300' : 'text-gray-700'
+                      }`}>
+                        Łączne wyświetlenia
+                      </span>
+                      <span className={`font-bold transition-colors duration-300 ${
+                        darkMode ? 'text-white' : 'text-gray-900'
+                      }`}>
+                        {analytics.totalViews.toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className={`transition-colors duration-300 ${
+                        darkMode ? 'text-gray-300' : 'text-gray-700'
+                      }`}>
+                        Łączne komentarze
+                      </span>
+                      <span className={`font-bold transition-colors duration-300 ${
+                        darkMode ? 'text-white' : 'text-gray-900'
+                      }`}>
+                        {analytics.totalComments.toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Growth Metrics */}
+                <div className={`rounded-xl p-6 shadow-md transition-colors duration-300 ${
+                  darkMode ? 'bg-gray-800' : 'bg-white'
+                }`}>
+                  <h3 className={`text-lg font-semibold mb-4 transition-colors duration-300 ${
+                    darkMode ? 'text-white' : 'text-gray-900'
+                  }`}>
+                    Wzrost w ostatnim miesiącu
+                  </h3>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className={`transition-colors duration-300 ${
+                        darkMode ? 'text-gray-300' : 'text-gray-700'
+                      }`}>
+                        Nowi użytkownicy
+                      </span>
+                      <span className="font-bold text-green-600">
+                        +{analytics.recentUsers}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className={`transition-colors duration-300 ${
+                        darkMode ? 'text-gray-300' : 'text-gray-700'
+                      }`}>
+                        Nowe przepisy
+                      </span>
+                      <span className="font-bold text-green-600">
+                        +{analytics.recentRecipes}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className={`transition-colors duration-300 ${
+                        darkMode ? 'text-gray-300' : 'text-gray-700'
+                      }`}>
+                        Wskaźnik weryfikacji
+                      </span>
+                      <span className={`font-bold transition-colors duration-300 ${
+                        darkMode ? 'text-white' : 'text-gray-900'
+                      }`}>
+                        {((analytics.verifiedUsers / analytics.totalUsers) * 100).toFixed(1)}%
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end">
+                <button
+                  onClick={() => exportData('analytics')}
+                  className={`px-4 py-2 rounded-lg transition-colors flex items-center ${
+                    darkMode 
+                      ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Eksportuj analitykę
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Reports Tab */}
+          {activeTab === 'reports' && (
+            <div className="space-y-6">
+              <div className={`rounded-xl p-6 shadow-md transition-colors duration-300 ${
+                darkMode ? 'bg-gray-800' : 'bg-white'
+              }`}>
+                <h3 className={`text-lg font-semibold mb-4 transition-colors duration-300 ${
+                  darkMode ? 'text-white' : 'text-gray-900'
+                }`}>
+                  Zgłoszenia ({reports.length})
+                </h3>
+                
+                {reports.length > 0 ? (
+                  <div className="space-y-4">
+                    {reports.map((report) => (
+                      <div key={report.id} className={`p-4 border rounded-lg transition-colors duration-300 ${
+                        darkMode ? 'border-gray-600' : 'border-gray-200'
+                      }`}>
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center space-x-2">
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              report.status === 'pending'
+                                ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                                : report.status === 'reviewed'
+                                ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                                : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                            }`}>
+                              {report.status === 'pending' ? 'Oczekujące' : 
+                               report.status === 'reviewed' ? 'Sprawdzone' : 'Rozwiązane'}
+                            </span>
+                            <span className={`text-sm transition-colors duration-300 ${
+                              darkMode ? 'text-gray-400' : 'text-gray-600'
+                            }`}>
+                              {report.targetType === 'recipe' ? 'Przepis' : 
+                               report.targetType === 'comment' ? 'Komentarz' : 'Użytkownik'}
+                            </span>
+                          </div>
+                          <span className={`text-sm transition-colors duration-300 ${
+                            darkMode ? 'text-gray-400' : 'text-gray-600'
+                          }`}>
+                            {new Date(report.createdAt).toLocaleDateString('pl-PL')}
+                          </span>
+                        </div>
+                        <p className={`font-medium transition-colors duration-300 ${
+                          darkMode ? 'text-white' : 'text-gray-900'
+                        }`}>
+                          Powód: {report.reason}
+                        </p>
+                        {report.description && (
+                          <p className={`text-sm mt-1 transition-colors duration-300 ${
+                            darkMode ? 'text-gray-300' : 'text-gray-700'
+                          }`}>
+                            {report.description}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <AlertTriangle className={`h-12 w-12 mx-auto mb-4 transition-colors duration-300 ${
+                      darkMode ? 'text-gray-400' : 'text-gray-400'
+                    }`} />
+                    <p className={`transition-colors duration-300 ${
+                      darkMode ? 'text-gray-400' : 'text-gray-600'
+                    }`}>
+                      Brak zgłoszeń
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* System Tab */}
+          {activeTab === 'system' && (
+            <div className="space-y-6">
+              <div className={`rounded-xl p-6 shadow-md transition-colors duration-300 ${
+                darkMode ? 'bg-gray-800' : 'bg-white'
+              }`}>
+                <h3 className={`text-lg font-semibold mb-4 transition-colors duration-300 ${
+                  darkMode ? 'text-white' : 'text-gray-900'
+                }`}>
+                  Ustawienia systemowe
+                </h3>
+                
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className={`font-medium transition-colors duration-300 ${
+                        darkMode ? 'text-white' : 'text-gray-900'
+                      }`}>
+                        Wyczyść wszystkie powiadomienia
+                      </p>
+                      <p className={`text-sm transition-colors duration-300 ${
+                        darkMode ? 'text-gray-400' : 'text-gray-600'
+                      }`}>
+                        Usuń wszystkie powiadomienia z systemu
+                      </p>
+                    </div>
+                    <button
+                      onClick={clearAllNotifications}
+                      className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+                    >
+                      Wyczyść
+                    </button>
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className={`font-medium transition-colors duration-300 ${
+                        darkMode ? 'text-white' : 'text-gray-900'
+                      }`}>
+                        Status systemu
+                      </p>
+                      <p className={`text-sm transition-colors duration-300 ${
+                        darkMode ? 'text-gray-400' : 'text-gray-600'
+                      }`}>
+                        Wszystkie usługi działają prawidłowo
+                      </p>
+                    </div>
+                    <div className="flex items-center">
+                      <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
+                      <span className="text-green-600 font-medium">Online</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className={`font-medium transition-colors duration-300 ${
+                        darkMode ? 'text-white' : 'text-gray-900'
+                      }`}>
+                        Wersja aplikacji
+                      </p>
+                      <p className={`text-sm transition-colors duration-300 ${
+                        darkMode ? 'text-gray-400' : 'text-gray-600'
+                      }`}>
+                        BetterPrzepisy v2.0.0
+                      </p>
+                    </div>
+                    <span className={`font-medium transition-colors duration-300 ${
+                      darkMode ? 'text-white' : 'text-gray-900'
+                    }`}>
+                      Najnowsza
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
         </motion.div>
-      )}
-
-      {/* System Tab */}
-      {activeTab === 'system' && (
-        <motion.div variants={containerVariants} className="space-y-8">
-          {/* System Info */}
-          <motion.div 
-            variants={itemVariants}
-            className={`rounded-xl shadow-md p-6 transition-colors duration-300 ${
-              darkMode ? 'bg-gray-800' : 'bg-white'
-            }`}
-          >
-            <h3 className={`text-lg font-semibold mb-4 transition-colors duration-300 ${
-              darkMode ? 'text-white' : 'text-gray-900'
-            }`}>
-              Informacje o systemie
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className={`transition-colors duration-300 ${
-                    darkMode ? 'text-gray-400' : 'text-gray-600'
-                  }`}>
-                    Wersja aplikacji:
-                  </span>
-                  <span className={`font-medium transition-colors duration-300 ${
-                    darkMode ? 'text-white' : 'text-gray-900'
-                  }`}>
-                    v1.0.0 BETA
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className={`transition-colors duration-300 ${
-                    darkMode ? 'text-gray-400' : 'text-gray-600'
-                  }`}>
-                    Baza danych:
-                  </span>
-                  <span className="flex items-center">
-                    <Database className="h-4 w-4 text-green-500 mr-1" />
-                    <span className={`font-medium transition-colors duration-300 ${
-                      darkMode ? 'text-white' : 'text-gray-900'
-                    }`}>
-                      Połączono
-                    </span>
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className={`transition-colors duration-300 ${
-                    darkMode ? 'text-gray-400' : 'text-gray-600'
-                  }`}>
-                    Status serwera:
-                  </span>
-                  <span className="flex items-center">
-                    <Globe className="h-4 w-4 text-green-500 mr-1" />
-                    <span className={`font-medium transition-colors duration-300 ${
-                      darkMode ? 'text-white' : 'text-gray-900'
-                    }`}>
-                      Online
-                    </span>
-                  </span>
-                </div>
-              </div>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className={`transition-colors duration-300 ${
-                    darkMode ? 'text-gray-400' : 'text-gray-600'
-                  }`}>
-                    Ostatnia aktualizacja:
-                  </span>
-                  <span className={`font-medium transition-colors duration-300 ${
-                    darkMode ? 'text-white' : 'text-gray-900'
-                  }`}>
-                    {new Date().toLocaleDateString('pl-PL')}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className={`transition-colors duration-300 ${
-                    darkMode ? 'text-gray-400' : 'text-gray-600'
-                  }`}>
-                    Czas działania:
-                  </span>
-                  <span className={`font-medium transition-colors duration-300 ${
-                    darkMode ? 'text-white' : 'text-gray-900'
-                  }`}>
-                    99.9%
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className={`transition-colors duration-300 ${
-                    darkMode ? 'text-gray-400' : 'text-gray-600'
-                  }`}>
-                    Środowisko:
-                  </span>
-                  <span className={`font-medium transition-colors duration-300 ${
-                    darkMode ? 'text-white' : 'text-gray-900'
-                  }`}>
-                    Production
-                  </span>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-
-          {/* System Actions */}
-          <motion.div 
-            variants={itemVariants}
-            className={`rounded-xl shadow-md p-6 transition-colors duration-300 ${
-              darkMode ? 'bg-gray-800' : 'bg-white'
-            }`}
-          >
-            <h3 className={`text-lg font-semibold mb-4 transition-colors duration-300 ${
-              darkMode ? 'text-white' : 'text-gray-900'
-            }`}>
-              Akcje systemowe
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="flex items-center p-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg hover:border-blue-500 dark:hover:border-blue-400 transition-colors"
-              >
-                <RefreshCw className="h-5 w-5 mr-3 text-blue-600 dark:text-blue-400" />
-                <div className="text-left">
-                  <p className={`font-medium transition-colors duration-300 ${
-                    darkMode ? 'text-white' : 'text-gray-900'
-                  }`}>
-                    Odśwież cache
-                  </p>
-                  <p className={`text-sm transition-colors duration-300 ${
-                    darkMode ? 'text-gray-400' : 'text-gray-600'
-                  }`}>
-                    Wyczyść pamięć podręczną systemu
-                  </p>
-                </div>
-              </motion.button>
-
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => exportData('analytics')}
-                className="flex items-center p-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg hover:border-green-500 dark:hover:border-green-400 transition-colors"
-              >
-                <Download className="h-5 w-5 mr-3 text-green-600 dark:text-green-400" />
-                <div className="text-left">
-                  <p className={`font-medium transition-colors duration-300 ${
-                    darkMode ? 'text-white' : 'text-gray-900'
-                  }`}>
-                    Backup danych
-                  </p>
-                  <p className={`text-sm transition-colors duration-300 ${
-                    darkMode ? 'text-gray-400' : 'text-gray-600'
-                  }`}>
-                    Utwórz kopię zapasową
-                  </p>
-                </div>
-              </motion.button>
-            </div>
-          </motion.div>
-        </motion.div>
-      )}
-
-      {/* Role Management Modal */}
-      {showRoleModal && (
-        <motion.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-        >
-          <motion.div 
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className={`rounded-xl p-6 max-w-md w-full mx-4 transition-colors duration-300 ${
-              darkMode ? 'bg-gray-800' : 'bg-white'
-            }`}
-          >
-            {(() => {
-              const targetUser = allUsers.find(u => u.id === showRoleModal);
-              if (!targetUser) return null;
-              
-              return (
-                <>
-                  <div className="flex items-center mb-4">
-                    <UserCheck className="h-6 w-6 text-blue-600 mr-3" />
-                    <h3 className={`text-lg font-semibold transition-colors duration-300 ${
-                      darkMode ? 'text-white' : 'text-gray-900'
-                    }`}>
-                      Zarządzaj użytkownikiem
-                    </h3>
-                  </div>
-                  <div className="mb-6">
-                    <p className={`mb-4 transition-colors duration-300 ${
-                      darkMode ? 'text-gray-400' : 'text-gray-600'
-                    }`}>
-                      Zarządzaj uprawnieniami dla: <strong>{targetUser.displayName || targetUser.username}</strong>
-                    </p>
-                    <div className="space-y-3">
-                      <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => handleUpdateUserRole(targetUser.id, targetUser.role || 'user', !targetUser.isVerified)}
-                        className={`w-full p-3 rounded-lg border-2 transition-colors ${
-                          targetUser.isVerified 
-                            ? 'border-red-200 bg-red-50 text-red-700 hover:bg-red-100' 
-                            : 'border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100'
-                        }`}
-                      >
-                        {targetUser.isVerified ? 'Usuń weryfikację' : 'Zweryfikuj użytkownika'}
-                      </motion.button>
-                      
-                      <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => handleUpdateUserRole(targetUser.id, targetUser.role === 'admin' ? 'user' : 'admin', targetUser.isVerified || false)}
-                        className={`w-full p-3 rounded-lg border-2 transition-colors ${
-                          targetUser.role === 'admin'
-                            ? darkMode 
-                              ? 'border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600'
-                              : 'border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100'
-                            : 'border-red-200 bg-red-50 text-red-700 hover:bg-red-100'
-                        }`}
-                      >
-                        {targetUser.role === 'admin' ? 'Usuń uprawnienia admina' : 'Nadaj uprawnienia admina'}
-                      </motion.button>
-                    </div>
-                  </div>
-                  <div className="flex space-x-4">
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => setShowRoleModal(null)}
-                      className={`flex-1 px-4 py-2 border rounded-lg transition-colors ${
-                        darkMode 
-                          ? 'border-gray-600 text-gray-300 hover:bg-gray-700' 
-                          : 'border-gray-300 text-gray-700 hover:bg-gray-50'
-                      }`}
-                    >
-                      Anuluj
-                    </motion.button>
-                  </div>
-                </>
-              );
-            })()}
-          </motion.div>
-        </motion.div>
-      )}
-
-      {/* Delete Confirmation Modal */}
-      {showDeleteConfirm && (
-        <motion.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-        >
-          <motion.div 
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className={`rounded-xl p-6 max-w-md w-full mx-4 transition-colors duration-300 ${
-              darkMode ? 'bg-gray-800' : 'bg-white'
-            }`}
-          >
-            <div className="flex items-center mb-4">
-              <AlertTriangle className="h-6 w-6 text-red-600 mr-3" />
-              <h3 className={`text-lg font-semibold transition-colors duration-300 ${
-                darkMode ? 'text-white' : 'text-gray-900'
-              }`}>
-                Potwierdź usunięcie
-              </h3>
-            </div>
-            <p className={`mb-6 transition-colors duration-300 ${
-              darkMode ? 'text-gray-400' : 'text-gray-600'
-            }`}>
-              {deleteType === 'user' 
-                ? 'Czy na pewno chcesz usunąć tego użytkownika? Ta akcja spowoduje również usunięcie wszystkich jego przepisów i nie może zostać cofnięta.'
-                : 'Czy na pewno chcesz usunąć ten przepis? Ta akcja nie może zostać cofnięta.'
-              }
-            </p>
-            <div className="flex space-x-4">
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setShowDeleteConfirm(null)}
-                className={`flex-1 px-4 py-2 border rounded-lg transition-colors ${
-                  darkMode 
-                    ? 'border-gray-600 text-gray-300 hover:bg-gray-700' 
-                    : 'border-gray-300 text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                Anuluj
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => {
-                  if (deleteType === 'user') {
-                    handleDeleteUser(showDeleteConfirm);
-                  } else {
-                    handleDeleteRecipe(showDeleteConfirm);
-                  }
-                }}
-                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-              >
-                Usuń
-              </motion.button>
-            </div>
-          </motion.div>
-        </motion.div>
-      )}
+      </AnimatePresence>
     </motion.div>
   );
 };
